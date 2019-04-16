@@ -100,7 +100,7 @@ def window_resize(w, h):
 
     glLoadIdentity()
 
-    gluPerspective(angle,fAspect,0.1,500)
+    gluPerspective(angle,fAspect,0.1,10000)
 
     glMatrixMode(GL_MODELVIEW)
     
@@ -155,6 +155,10 @@ def key_pressed_special(key, x, y):
         glTranslatef(10.0, 0.0, 0.0)
     elif key == GLUT_KEY_LEFT:
         glTranslatef(-10.0, 0.0, 0.0)
+    elif key == GLUT_KEY_PAGE_UP:
+        glTranslatef(0.0, 0.0, 10.0)
+    elif key == GLUT_KEY_PAGE_DOWN:
+        glTranslatef(0.0, 0.0, -10.0)
 
 def key_pressed(key, x, y):
     global angle_x, angle_y, angle_z
