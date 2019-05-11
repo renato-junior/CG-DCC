@@ -1,5 +1,6 @@
 import glfw
 from OpenGL.GL import *
+from OpenGL.GLU import *
 import OpenGL.GL.shaders
 import numpy
 
@@ -26,13 +27,13 @@ def flat_shading():
 
     vertex_shader = """
     #version 330
-    in vec3 Position;
-    in vec3 Color;
+    in vec3 position;
+    in vec3 color;
     out vec3 newColor;
     void main()
     {
-        gl_Position = vec4(Position.x, Position.y, Position.z, 1.0);
-        newColor = Color;
+        gl_Position = vec4(position.x, position.y, position.z, 1.0);
+        newColor = color;
     }
 
     """
@@ -55,11 +56,11 @@ def flat_shading():
     glBindBuffer(GL_ARRAY_BUFFER, VBO)
     glBufferData(GL_ARRAY_BUFFER, 72, triangle, GL_STATIC_DRAW)    
 
-    position = glGetAttribLocation(shader, "Position")
+    position = glGetAttribLocation(shader, "position")
     glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(0))
     glEnableVertexAttribArray(position)
 
-    color = glGetAttribLocation(shader, "Color")
+    color = glGetAttribLocation(shader, "color")
     glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(12))
     glEnableVertexAttribArray(color)
 
@@ -71,6 +72,7 @@ def flat_shading():
         glClear(GL_COLOR_BUFFER_BIT)
 
         glDrawArrays(GL_TRIANGLES, 0, 3)
+        # gluSphere(gluNewQuadric(), 0.5, 1000, 1000)
 
         glfw.swap_buffers(window)
 
