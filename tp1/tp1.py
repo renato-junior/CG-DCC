@@ -3,6 +3,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 import OpenGL.GL.shaders
 import numpy
+import glm
 
 
 def flat_shading():
@@ -18,33 +19,39 @@ def flat_shading():
         return
 
     glfw.make_context_current(window)
-    #            positions        colors
-    triangle = [-0.5, -0.5, 0.0, 1.0, 0.0, 0.0,
-                 0.5, -0.5, 0.0, 0.0, 1.0, 0.0,
-                 0.0,  0.5, 0.0, 0.0, 0.0, 1.0]
-
-    triangle = numpy.array(triangle, dtype = numpy.float32)
 
     vertex_shader = """
     #version 330
+
     in vec3 position;
-    in vec3 color;
-    out vec3 newColor;
+    in vec3 normal;
+
+    uniform mat4 transform;
+    uniform vec3 aColor;
+    uniform vec3 lDirection;
+    uniform vec3 lColor;
+
+    out vec4 newColor;
     void main()
     {
-        gl_Position = vec4(position.x, position.y, position.z, 1.0);
-        newColor = color;
+        gl_Position = transform * vec4(position, 1.0f);
+
+        vec4 ambient = vec4(aColor, 0);
+        vec4 diffuse = vec4(max(dot(lDirection, -normal), 0) * lColor, 0);
+        
+        newColor = ambient + diffuse;
     }
 
     """
 
     fragment_shader = """
     #version 330
-    in vec3 newColor;
-    out vec4 outColor;
+
+    in vec4 newColor;
+
     void main()
     {
-        outColor = vec4(newColor, 0.0f);
+        gl_FragColor = newColor;
     }
     """
     shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(vertex_shader, GL_VERTEX_SHADER),
@@ -52,27 +59,45 @@ def flat_shading():
    
     glUseProgram(shader)
 
-    VBO = glGenBuffers(1)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO)
-    glBufferData(GL_ARRAY_BUFFER, 72, triangle, GL_STATIC_DRAW)    
+    aColor = [0.0, 0.0, 1.0]
+    lDirection = [-1.0, 0.0, 0.0]
+    lColor = [1.0, 1.0, 1.0]
 
-    position = glGetAttribLocation(shader, "position")
-    glVertexAttribPointer(position, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(0))
-    glEnableVertexAttribArray(position)
+    aColor = numpy.array(aColor, dtype = numpy.float32)
+    lDirection = numpy.array(lDirection, dtype = numpy.float32)
+    lColor = numpy.array(lColor, dtype = numpy.float32)
 
-    color = glGetAttribLocation(shader, "color")
-    glVertexAttribPointer(color, 3, GL_FLOAT, GL_FALSE, 24, ctypes.c_void_p(12))
-    glEnableVertexAttribArray(color)
+    aColorLoc = glGetUniformLocation(shader, "aColor")
+    glUniform3fv(aColorLoc, 1, aColor)
+
+    lDirectionLoc = glGetUniformLocation(shader, "lDirection")
+    glUniform3fv(lDirectionLoc, 1, lDirection)
+
+    lColorLoc = glGetUniformLocation(shader, "lDirection")
+    glUniform3fv(lColorLoc, 1, lColor)
+
+
 
     glClearColor(0.2, 0.3, 0.2, 1.0)
+    glEnable(GL_DEPTH_TEST)
+
+    pers = glm.perspective(0.5,1.0,0.1,10.0)
+    trans = glm.translate(glm.mat4(1.0), glm.vec3(0.0,0.0,-5.5))
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
 
-        glClear(GL_COLOR_BUFFER_BIT)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glDrawArrays(GL_TRIANGLES, 0, 3)
-        # gluSphere(gluNewQuadric(), 0.5, 1000, 1000)
+        # glDrawArrays(GL_TRIANGLES, 0, 3)
+        
+        sphere_quadric = gluNewQuadric()
+        gluSphere(sphere_quadric, 0.5, 10, 10)
+
+        transformLoc = glGetUniformLocation(shader, "transform")
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans))
+
+        # glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, None)
 
         glfw.swap_buffers(window)
 
