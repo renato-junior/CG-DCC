@@ -24,7 +24,7 @@ def flat_shading():
     #version 330
 
     in vec3 position;
-    in vec3 normal;
+    in vec3 gl_Normal;
 
     uniform mat4 transform;
     uniform vec3 aColor;
@@ -37,9 +37,9 @@ def flat_shading():
         gl_Position = transform * vec4(position, 1.0f);
 
         vec4 ambient = vec4(aColor, 0);
-        vec4 diffuse = vec4(max(dot(lDirection, -normal), 0) * lColor, 0);
+        vec4 diffuse = vec4(max(dot(lDirection, -gl_Normal), 0) * lColor, 0);
         
-        newColor = ambient + diffuse;
+        newColor =  ambient + diffuse;
     }
 
     """
@@ -59,13 +59,14 @@ def flat_shading():
    
     glUseProgram(shader)
 
-    aColor = [0.0, 0.0, 1.0]
-    lDirection = [-1.0, 0.0, 0.0]
+    aColor = [0.0, 0.0, 0.5]
+    lDirection = [-1.0, -1.0, 0.0]
     lColor = [1.0, 1.0, 1.0]
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
     lDirection = numpy.array(lDirection, dtype = numpy.float32)
     lColor = numpy.array(lColor, dtype = numpy.float32)
+    # normal = numpy.array(normal, dtype = numpy.float32)
 
     aColorLoc = glGetUniformLocation(shader, "aColor")
     glUniform3fv(aColorLoc, 1, aColor)
@@ -73,10 +74,11 @@ def flat_shading():
     lDirectionLoc = glGetUniformLocation(shader, "lDirection")
     glUniform3fv(lDirectionLoc, 1, lDirection)
 
-    lColorLoc = glGetUniformLocation(shader, "lDirection")
+    lColorLoc = glGetUniformLocation(shader, "lColor")
     glUniform3fv(lColorLoc, 1, lColor)
 
-
+    # normalLoc = glGetUniformLocation(shader, "normal")
+    # glUniform3fv(normalLoc, 1, normal)
 
     glClearColor(0.2, 0.3, 0.2, 1.0)
     glEnable(GL_DEPTH_TEST)
@@ -90,14 +92,16 @@ def flat_shading():
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
         # glDrawArrays(GL_TRIANGLES, 0, 3)
+
+        rot_x = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(1.0,0.0,0.0))
+        rot_y = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(0.0,1.0,0.0))
         
-        sphere_quadric = gluNewQuadric()
-        gluSphere(sphere_quadric, 0.5, 10, 10)
-
         transformLoc = glGetUniformLocation(shader, "transform")
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans))
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
-        # glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, None)
+        sphere_quadric = gluNewQuadric()
+        gluQuadricNormals(sphere_quadric, GLU_FLAT)
+        gluSphere(sphere_quadric, 0.5, 20, 20)
 
         glfw.swap_buffers(window)
 
