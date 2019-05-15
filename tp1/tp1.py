@@ -23,10 +23,11 @@ def flat_shading():
     vertex_shader = """
     #version 330
 
-    in vec3 position;
+    in vec3 gl_Vertex;
     in vec3 gl_Normal;
 
     uniform mat4 transform;
+    uniform mat4 transform_normal;
     uniform vec3 aColor;
     uniform vec3 lDirection;
     uniform vec3 lColor;
@@ -34,10 +35,10 @@ def flat_shading():
     out vec4 newColor;
     void main()
     {
-        gl_Position = transform * vec4(position, 1.0f);
+        gl_Position = transform * vec4(gl_Vertex, 1.0f);
 
         vec4 ambient = vec4(aColor, 0);
-        vec4 diffuse = vec4(max(dot(lDirection, -gl_Normal), 0) * lColor, 0);
+        vec4 diffuse = vec4(max(dot(lDirection, -vec3(transform_normal*vec4(gl_Normal,1.0))), 0) * lColor, 0);
         
         newColor =  ambient + diffuse;
     }
@@ -60,7 +61,7 @@ def flat_shading():
     glUseProgram(shader)
 
     aColor = [0.0, 0.0, 0.5]
-    lDirection = [-1.0, -1.0, 0.0]
+    lDirection = [-1.0, -1.0, -1.0]
     lColor = [1.0, 1.0, 1.0]
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
@@ -84,24 +85,39 @@ def flat_shading():
     glEnable(GL_DEPTH_TEST)
 
     pers = glm.perspective(0.5,1.0,0.1,10.0)
-    trans = glm.translate(glm.mat4(1.0), glm.vec3(0.0,0.0,-5.5))
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        # glDrawArrays(GL_TRIANGLES, 0, 3)
-
+        # Create rotation matrix
         rot_x = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(1.0,0.0,0.0))
         rot_y = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(0.0,1.0,0.0))
-        
+
+        # Create normal transformation matrix
+        trans_normal = glm.mat4(1.0)
+        transformNormalLoc = glGetUniformLocation(shader, "transform_normal")
+        glUniformMatrix4fv(transformNormalLoc, 1, GL_FALSE, glm.value_ptr(trans_normal*rot_x*rot_y))
+
+        # Create tranformation matrix for sphere
+        trans = glm.translate(glm.mat4(1.0), glm.vec3(-0.5,0.0,-5.5))
         transformLoc = glGetUniformLocation(shader, "transform")
         glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
+        # Draw Sphere
         sphere_quadric = gluNewQuadric()
         gluQuadricNormals(sphere_quadric, GLU_FLAT)
-        gluSphere(sphere_quadric, 0.5, 20, 20)
+        gluSphere(sphere_quadric, 0.35, 20, 20)
+
+        # Create tranformation matrix for cylinder
+        trans = glm.translate(glm.mat4(1.0), glm.vec3(0.5,0.0,-5.5))
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
+
+        # Draw cylinder
+        cylinder_quad = gluNewQuadric()
+        gluQuadricNormals(cylinder_quad, GLU_FLAT)
+        gluCylinder(cylinder_quad, 0.25, 0.25, 0.5, 10, 10)
 
         glfw.swap_buffers(window)
 
