@@ -12,7 +12,7 @@ def phong_shading():
     if not glfw.init():
         return
 
-    window = glfw.create_window(800, 600, "My OpenGL window", None, None)
+    window = glfw.create_window(800, 600, "Phong Shading", None, None)
 
     if not window:
         glfw.terminate()
@@ -64,10 +64,10 @@ def phong_shading():
         vec4 ambient = vec4(aColor, 1.0);
 
         // Diffuse term
-        vec4 diffuse = vec4(max(dot(L, Normal), 0) * lColor, 1.0);
+        vec4 diffuse = vec4(max(dot(L, Normal), 0) * lColor, 0.0);
 
         // Specular term
-        vec4 specular = vec4(lSpecular * pow(max(dot(R, E), 0.0), 0.3 * mShininess), 1.0);
+        vec4 specular = vec4(lSpecular * pow(max(dot(R, E), 0.0), 0.3 * mShininess), 0.0);
 
         gl_FragColor = ambient + diffuse + specular;
     }
@@ -77,11 +77,11 @@ def phong_shading():
    
     glUseProgram(shader)
 
-    aColor = [0.0, 0.0, 0.0]
-    lPosition = [0, 0, 100]
+    aColor = [0.0, 0.0, 0.5]
+    lPosition = [300, 300, 300]
     lColor = [1.0, 1.0, 1.0]
-    lSpecular = [0.0, 0.0, 0.0]
-    mShininess = 0.1
+    lSpecular = [1.0, 1.0, 1.0]
+    mShininess = 100
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
     lPosition = numpy.array(lPosition, dtype = numpy.float32)
@@ -160,7 +160,7 @@ def gouraud_shading():
     if not glfw.init():
         return
 
-    window = glfw.create_window(800, 600, "My OpenGL window", None, None)
+    window = glfw.create_window(800, 600, "Gouraud Shading", None, None)
 
     if not window:
         glfw.terminate()
@@ -277,7 +277,7 @@ def flat_shading():
     if not glfw.init():
         return
 
-    window = glfw.create_window(800, 600, "My OpenGL window", None, None)
+    window = glfw.create_window(800, 600, "Flat Shading", None, None)
 
     if not window:
         glfw.terminate()
