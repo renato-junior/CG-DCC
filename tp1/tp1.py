@@ -79,9 +79,9 @@ def phong_shading():
 
     aColor = [0.0, 0.0, 0.5]
     lPosition = [300, 300, 300]
-    lColor = [1.0, 1.0, 1.0]
+    lColor = [0.5, 0.5, 0.5]
     lSpecular = [1.0, 1.0, 1.0]
-    mShininess = 100
+    mShininess = 25
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
     lPosition = numpy.array(lPosition, dtype = numpy.float32)
