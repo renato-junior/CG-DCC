@@ -174,21 +174,32 @@ def gouraud_shading():
     in vec3 gl_Vertex;
     in vec3 gl_Normal;
 
-    uniform mat4 transform;
-    uniform mat4 transform_normal;
+    uniform mat4 model_view_matrix;
+    uniform mat4 normal_matrix;
+    uniform mat4 model_view_projection_matrix;   
+      
     uniform vec3 aColor;
-    uniform vec3 lDirection;
+    uniform vec3 lPosition;
     uniform vec3 lColor;
+    uniform vec3 lSpecular;
+    uniform float mShininess;
 
     out vec4 newColor;
     void main()
     {
-        gl_Position = transform * vec4(gl_Vertex, 1.0f);
+        vec3 Vertex = vec3(model_view_matrix * vec4(gl_Vertex, 1.0));
+        vec3 Normal = vec3(normalize(normal_matrix * vec4(gl_Normal, 0.0)));
+        gl_Position = model_view_projection_matrix * vec4(gl_Vertex, 1.0);
+
+        vec3 L = normalize(lPosition - Vertex);
+        vec3 E = normalize(-Vertex);
+        vec3 R = normalize(-reflect(L, Normal));
 
         vec4 ambient = vec4(aColor, 0);
-        vec4 diffuse = vec4(max(dot(lDirection, -vec3(transform_normal*vec4(gl_Normal,1.0))), 0) * lColor, 0);
+        vec4 diffuse = vec4(max(dot(L, Normal), 0) * lColor, 0.0);
+        vec4 specular = vec4(lSpecular * pow(max(dot(R, E), 0.0), 0.3 * mShininess), 0.0);
         
-        newColor =  ambient + diffuse;
+        newColor =  ambient + diffuse + specular;
     }
 
     """
@@ -209,25 +220,30 @@ def gouraud_shading():
     glUseProgram(shader)
 
     aColor = [0.0, 0.0, 0.5]
-    lDirection = [-1.0, -1.0, -1.0]
-    lColor = [1.0, 1.0, 1.0]
+    lPosition = [300, 300, 300]
+    lColor = [0.5, 0.5, 0.5]
+    lSpecular = [1.0, 1.0, 1.0]
+    mShininess = 25
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
-    lDirection = numpy.array(lDirection, dtype = numpy.float32)
+    lPosition = numpy.array(lPosition, dtype = numpy.float32)
     lColor = numpy.array(lColor, dtype = numpy.float32)
-    # normal = numpy.array(normal, dtype = numpy.float32)
+    lSpecular = numpy.array(lSpecular, dtype = numpy.float32)
 
     aColorLoc = glGetUniformLocation(shader, "aColor")
     glUniform3fv(aColorLoc, 1, aColor)
 
-    lDirectionLoc = glGetUniformLocation(shader, "lDirection")
-    glUniform3fv(lDirectionLoc, 1, lDirection)
+    lPositionLoc = glGetUniformLocation(shader, "lPosition")
+    glUniform3fv(lPositionLoc, 1, lPosition)
 
     lColorLoc = glGetUniformLocation(shader, "lColor")
     glUniform3fv(lColorLoc, 1, lColor)
 
-    # normalLoc = glGetUniformLocation(shader, "normal")
-    # glUniform3fv(normalLoc, 1, normal)
+    lSpecularLoc = glGetUniformLocation(shader, "lSpecular")
+    glUniform3fv(lSpecularLoc, 1, lSpecular)
+
+    mShininessLoc = glGetUniformLocation(shader, "mShininess")
+    glUniform1f(mShininessLoc, mShininess)
 
     glClearColor(0.2, 0.3, 0.2, 1.0)
     glEnable(GL_DEPTH_TEST)
@@ -244,14 +260,18 @@ def gouraud_shading():
         rot_y = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(0.0,1.0,0.0))
 
         # Create normal transformation matrix
-        trans_normal = glm.mat4(1.0)
-        transformNormalLoc = glGetUniformLocation(shader, "transform_normal")
-        glUniformMatrix4fv(transformNormalLoc, 1, GL_FALSE, glm.value_ptr(trans_normal*rot_x*rot_y))
+        normal_matrix = glm.mat4(1.0)
+        normalMatrixLoc = glGetUniformLocation(shader, "normal_matrix")
+        glUniformMatrix4fv(normalMatrixLoc, 1, GL_FALSE, glm.value_ptr(normal_matrix*rot_x*rot_y))
 
         # Create tranformation matrix for sphere
         trans = glm.translate(glm.mat4(1.0), glm.vec3(-0.5,0.0,-5.5))
-        transformLoc = glGetUniformLocation(shader, "transform")
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
+        
+        modelViewLoc = glGetUniformLocation(shader, "model_view_matrix")
+        glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, glm.value_ptr(trans*rot_x*rot_y))
+
+        modelViewProjLoc = glGetUniformLocation(shader, "model_view_projection_matrix")
+        glUniformMatrix4fv(modelViewProjLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
         # Draw Sphere
         sphere_quadric = gluNewQuadric()
@@ -260,7 +280,12 @@ def gouraud_shading():
 
         # Create tranformation matrix for cylinder
         trans = glm.translate(glm.mat4(1.0), glm.vec3(0.5,0.0,-5.5))
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
+
+        modelViewLoc = glGetUniformLocation(shader, "model_view_matrix")
+        glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, glm.value_ptr(trans*rot_x*rot_y))
+
+        modelViewProjLoc = glGetUniformLocation(shader, "model_view_projection_matrix")
+        glUniformMatrix4fv(modelViewProjLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
         # Draw cylinder
         cylinder_quad = gluNewQuadric()
@@ -291,21 +316,32 @@ def flat_shading():
     in vec3 gl_Vertex;
     in vec3 gl_Normal;
 
-    uniform mat4 transform;
-    uniform mat4 transform_normal;
+    uniform mat4 model_view_matrix;
+    uniform mat4 normal_matrix;
+    uniform mat4 model_view_projection_matrix;   
+      
     uniform vec3 aColor;
-    uniform vec3 lDirection;
+    uniform vec3 lPosition;
     uniform vec3 lColor;
+    uniform vec3 lSpecular;
+    uniform float mShininess;
 
     out vec4 newColor;
     void main()
     {
-        gl_Position = transform * vec4(gl_Vertex, 1.0f);
+        vec3 Vertex = vec3(model_view_matrix * vec4(gl_Vertex, 1.0));
+        vec3 Normal = vec3(normalize(normal_matrix * vec4(gl_Normal, 0.0)));
+        gl_Position = model_view_projection_matrix * vec4(gl_Vertex, 1.0);
+
+        vec3 L = normalize(lPosition - Vertex);
+        vec3 E = normalize(-Vertex);
+        vec3 R = normalize(-reflect(L, Normal));
 
         vec4 ambient = vec4(aColor, 0);
-        vec4 diffuse = vec4(max(dot(lDirection, -vec3(transform_normal*vec4(gl_Normal,1.0))), 0) * lColor, 0);
+        vec4 diffuse = vec4(max(dot(L, Normal), 0) * lColor, 0.0);
+        vec4 specular = vec4(lSpecular * pow(max(dot(R, E), 0.0), 0.3 * mShininess), 0.0);
         
-        newColor =  ambient + diffuse;
+        newColor =  ambient + diffuse + specular;
     }
 
     """
@@ -326,25 +362,30 @@ def flat_shading():
     glUseProgram(shader)
 
     aColor = [0.0, 0.0, 0.5]
-    lDirection = [-1.0, -1.0, -1.0]
-    lColor = [1.0, 1.0, 1.0]
+    lPosition = [300, 300, 300]
+    lColor = [0.5, 0.5, 0.5]
+    lSpecular = [1.0, 1.0, 1.0]
+    mShininess = 25
 
     aColor = numpy.array(aColor, dtype = numpy.float32)
-    lDirection = numpy.array(lDirection, dtype = numpy.float32)
+    lPosition = numpy.array(lPosition, dtype = numpy.float32)
     lColor = numpy.array(lColor, dtype = numpy.float32)
-    # normal = numpy.array(normal, dtype = numpy.float32)
+    lSpecular = numpy.array(lSpecular, dtype = numpy.float32)
 
     aColorLoc = glGetUniformLocation(shader, "aColor")
     glUniform3fv(aColorLoc, 1, aColor)
 
-    lDirectionLoc = glGetUniformLocation(shader, "lDirection")
-    glUniform3fv(lDirectionLoc, 1, lDirection)
+    lPositionLoc = glGetUniformLocation(shader, "lPosition")
+    glUniform3fv(lPositionLoc, 1, lPosition)
 
     lColorLoc = glGetUniformLocation(shader, "lColor")
     glUniform3fv(lColorLoc, 1, lColor)
 
-    # normalLoc = glGetUniformLocation(shader, "normal")
-    # glUniform3fv(normalLoc, 1, normal)
+    lSpecularLoc = glGetUniformLocation(shader, "lSpecular")
+    glUniform3fv(lSpecularLoc, 1, lSpecular)
+
+    mShininessLoc = glGetUniformLocation(shader, "mShininess")
+    glUniform1f(mShininessLoc, mShininess)
 
     glClearColor(0.2, 0.3, 0.2, 1.0)
     glEnable(GL_DEPTH_TEST)
@@ -361,14 +402,18 @@ def flat_shading():
         rot_y = glm.rotate(glm.mat4(1.0),0.5 * glfw.get_time(),glm.vec3(0.0,1.0,0.0))
 
         # Create normal transformation matrix
-        trans_normal = glm.mat4(1.0)
-        transformNormalLoc = glGetUniformLocation(shader, "transform_normal")
-        glUniformMatrix4fv(transformNormalLoc, 1, GL_FALSE, glm.value_ptr(trans_normal*rot_x*rot_y))
+        normal_matrix = glm.mat4(1.0)
+        normalMatrixLoc = glGetUniformLocation(shader, "normal_matrix")
+        glUniformMatrix4fv(normalMatrixLoc, 1, GL_FALSE, glm.value_ptr(normal_matrix*rot_x*rot_y))
 
         # Create tranformation matrix for sphere
         trans = glm.translate(glm.mat4(1.0), glm.vec3(-0.5,0.0,-5.5))
-        transformLoc = glGetUniformLocation(shader, "transform")
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
+        
+        modelViewLoc = glGetUniformLocation(shader, "model_view_matrix")
+        glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, glm.value_ptr(trans*rot_x*rot_y))
+
+        modelViewProjLoc = glGetUniformLocation(shader, "model_view_projection_matrix")
+        glUniformMatrix4fv(modelViewProjLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
         # Draw Sphere
         sphere_quadric = gluNewQuadric()
@@ -377,7 +422,12 @@ def flat_shading():
 
         # Create tranformation matrix for cylinder
         trans = glm.translate(glm.mat4(1.0), glm.vec3(0.5,0.0,-5.5))
-        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
+
+        modelViewLoc = glGetUniformLocation(shader, "model_view_matrix")
+        glUniformMatrix4fv(modelViewLoc, 1, GL_FALSE, glm.value_ptr(trans*rot_x*rot_y))
+
+        modelViewProjLoc = glGetUniformLocation(shader, "model_view_projection_matrix")
+        glUniformMatrix4fv(modelViewProjLoc, 1, GL_FALSE, glm.value_ptr(pers*trans*rot_x*rot_y))
 
         # Draw cylinder
         cylinder_quad = gluNewQuadric()
