@@ -21,10 +21,7 @@ def phong_shading():
     glfw.make_context_current(window)
 
     vertex_shader = """
-    #version 330
-
-    in vec3 gl_Vertex;
-    in vec3 gl_Normal;
+    #version 130
 
     uniform mat4 model_view_matrix;
     uniform mat4 normal_matrix;
@@ -35,15 +32,15 @@ def phong_shading():
 
     void main()
     {
-        Vertex = vec3(model_view_matrix * vec4(gl_Vertex, 1.0));
+        Vertex = vec3(model_view_matrix * gl_Vertex);
         Normal = vec3(normalize(normal_matrix * vec4(gl_Normal, 0.0)));
-        gl_Position = model_view_projection_matrix * vec4(gl_Vertex, 1.0);
+        gl_Position = model_view_projection_matrix * gl_Vertex;
     }
 
     """
 
     fragment_shader = """
-    #version 330
+    #version 130
 
     in vec3 Normal;
     in vec3 Vertex;
@@ -169,10 +166,7 @@ def gouraud_shading():
     glfw.make_context_current(window)
 
     vertex_shader = """
-    #version 330
-
-    in vec3 gl_Vertex;
-    in vec3 gl_Normal;
+    #version 130
 
     uniform mat4 model_view_matrix;
     uniform mat4 normal_matrix;
@@ -187,9 +181,9 @@ def gouraud_shading():
     out vec4 newColor;
     void main()
     {
-        vec3 Vertex = vec3(model_view_matrix * vec4(gl_Vertex, 1.0));
+        vec3 Vertex = vec3(model_view_matrix * gl_Vertex);
         vec3 Normal = vec3(normalize(normal_matrix * vec4(gl_Normal, 0.0)));
-        gl_Position = model_view_projection_matrix * vec4(gl_Vertex, 1.0);
+        gl_Position = model_view_projection_matrix * gl_Vertex;
 
         vec3 L = normalize(lPosition - Vertex);
         vec3 E = normalize(-Vertex);
@@ -205,7 +199,7 @@ def gouraud_shading():
     """
 
     fragment_shader = """
-    #version 330
+    #version 130
 
     in vec4 newColor;
 
@@ -311,10 +305,7 @@ def flat_shading():
     glfw.make_context_current(window)
 
     vertex_shader = """
-    #version 330
-
-    in vec3 gl_Vertex;
-    in vec3 gl_Normal;
+    #version 130
 
     uniform mat4 model_view_matrix;
     uniform mat4 normal_matrix;
@@ -329,9 +320,9 @@ def flat_shading():
     out vec4 newColor;
     void main()
     {
-        vec3 Vertex = vec3(model_view_matrix * vec4(gl_Vertex, 1.0));
+        vec3 Vertex = vec3(model_view_matrix * gl_Vertex);
         vec3 Normal = vec3(normalize(normal_matrix * vec4(gl_Normal, 0.0)));
-        gl_Position = model_view_projection_matrix * vec4(gl_Vertex, 1.0);
+        gl_Position = model_view_projection_matrix * gl_Vertex;
 
         vec3 L = normalize(lPosition - Vertex);
         vec3 E = normalize(-Vertex);
@@ -347,7 +338,7 @@ def flat_shading():
     """
 
     fragment_shader = """
-    #version 330
+    #version 130
 
     in vec4 newColor;
 
