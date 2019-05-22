@@ -54,7 +54,7 @@ def read_obj_file(filename, swapyz=False):
     
     return (vertices, normals, faces)
 
-teapot_faces = read_obj_file("teapot_2.obj")
+teapot_faces = read_obj_file("teapot.obj")
 
 def draw_faces(obj):
     vertices = obj[0]
