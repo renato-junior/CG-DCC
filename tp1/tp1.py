@@ -54,8 +54,6 @@ def read_obj_file(filename, swapyz=False):
     
     return (vertices, normals, faces)
 
-teapot_faces = read_obj_file("teapot.obj")
-
 def draw_faces(obj):
     vertices = obj[0]
     normals = obj[1]
@@ -245,6 +243,8 @@ def flat_shading():
         glfw.swap_buffers(window)
 
     glfw.terminate()
+
+teapot_faces = read_obj_file("teapot.obj")
 
 if __name__ == "__main__":
     shader = sys.argv[1]
