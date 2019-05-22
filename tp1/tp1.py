@@ -66,8 +66,8 @@ def draw_faces(obj):
         face_vertices = face[0]
         face_normals = face[1]
         for i in range(3):
-            glVertex3f(float(vertices[face_vertices[i]-1][0]), float(vertices[face_vertices[i]-1][1]), float(vertices[face_vertices[i]-1][2]))
             glNormal3f(float(normals[face_normals[i]-1][0]), float(normals[face_normals[i]-1][1]), float(normals[face_normals[i]-1][2]))
+            glVertex3f(float(vertices[face_vertices[i]-1][0]), float(vertices[face_vertices[i]-1][1]), float(vertices[face_vertices[i]-1][2]))
     glEnd()
 
 def draw_objects(shader):
