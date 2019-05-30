@@ -3,9 +3,9 @@ from math import sqrt
 class vec3():
     def __init__(self, e0, e1, e2):
         self.e = [0 for x in range(3)]
-        self.e[0] = e0
-        self.e[1] = e1
-        self.e[2] = e2
+        self.e[0] = float(e0)
+        self.e[1] = float(e1)
+        self.e[2] = float(e2)
 
     def x(self):
         return self.e[0]
@@ -130,8 +130,18 @@ class ray():
     
     def point_at_parameter(self):
         return self.A + t*self.B
-    
+
+def hit_sphere(center, radius, r):
+    oc = r.origin() - center
+    a = r.direction().dot(r.direction())
+    b = oc.dot(r.direction()) * 2.0
+    c = oc.dot(oc) - radius*radius
+    discriminant = b*b - 4*a*c
+    return discriminant > 0
+
 def color(r):
+    if hit_sphere(vec3(0, 0, -1), 0.5, r):
+        return vec3(1, 0, 0)
     unit_direction = r.direction().unit_vector()
     t = 0.5*(unit_direction.y() + 1.0)
     return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
