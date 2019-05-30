@@ -45,8 +45,8 @@ class vec3():
                     (-(self.e[0]*other.e[2] - self.e[2]*other.e[0])),
                     (self.e[0]*other.e[1] - self.e[1]*other.e[0]))
     
-    def unit_vector(self, v):
-        return v/v.length()
+    def unit_vector(self):
+        return self/self.length()
 
     # Override methods
     def __str__(self):
@@ -117,6 +117,25 @@ class vec3():
         elif isinstance(other, vec3):
             return vec3(self.e[0]/other.e[0], self.e[1]/other.e[1], self.e[2]/other.e[2])
 
+class ray():
+    def __init__(self, a, b):
+        self.A = a
+        self.B = b
+    
+    def origin(self):
+        return self.A
+    
+    def direction(self):
+        return self.B
+    
+    def point_at_parameter(self):
+        return self.A + t*self.B
+    
+def color(r):
+    unit_direction = r.direction().unit_vector()
+    t = 0.5*(unit_direction.y() + 1.0)
+    return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
+
 def write_ppm(filename):
     ppm_file = open(filename, "w")
     nx = 200
@@ -124,12 +143,23 @@ def write_ppm(filename):
     ppm_file.write("P3\n")
     ppm_file.write("{} {}\n".format(nx, ny))
     ppm_file.write("255\n")
+
+    lower_left_corner = vec3(-2.0, -1.0, -1.0)
+    horizontal = vec3(4.0, 0.0, 0.0)
+    vertical = vec3(0.0, 2.0, 0.0)
+    origin = vec3(0.0, 0.0, 0.0)
+
     for j in range(ny-1, -1, -1):
         for i in range(nx):
-            col = vec3(float(i)/float(nx), float(j)/float(ny), 0.2)
+            u = float(i)/float(nx)
+            v = float(j)/float(ny)
+            r = ray(origin, lower_left_corner + horizontal*u + vertical*v)
+
+            col = color(r)
             ir = int(255.99*col[0])
             ig = int(255.99*col[1])
             ib = int(255.99*col[2])
+
             ppm_file.write("{} {} {}\n".format(ir, ig, ib))
 
 
