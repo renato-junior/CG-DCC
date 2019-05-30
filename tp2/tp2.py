@@ -1,4 +1,5 @@
 from math import sqrt
+from random import random
 
 MAXFLOAT = 99999999999999
 
@@ -92,9 +93,9 @@ class vec3():
     def __itruediv__(self, other):
         if isinstance(other, float) or isinstance(other, int):
             k = 1.0/other
-            self.e[0] /= k
-            self.e[1] /= k
-            self.e[2] /= k
+            self.e[0] *= k
+            self.e[1] *= k
+            self.e[2] *= k
         elif isinstance(other, vec3):
             self.e[0] /= other.e[0]
             self.e[1] /= other.e[1]
@@ -191,7 +192,15 @@ class sphere(hitable):
                 return True
         return False
 
+class camera():
+    def __init__(self):
+        self.lower_left_corner = vec3(-2.0, -1.0, -1.0)
+        self.horizontal = vec3(4.0, 0.0, 0.0)
+        self.vertical = vec3(0.0, 2.0, 0.0)
+        self.origin = vec3(0.0, 0.0, 0.0)
 
+    def get_ray(self, u, v):
+        return ray(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
     
 def color(r, world):
     rec = hit_record()
@@ -203,35 +212,35 @@ def color(r, world):
         return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
 
 def write_ppm(filename):
-    ppm_file = open(filename, "w")
     nx = 200
     ny = 100
+    ns = 100
+
+    ppm_file = open(filename, "w")
     ppm_file.write("P3\n")
     ppm_file.write("{} {}\n".format(nx, ny))
     ppm_file.write("255\n")
-
-    lower_left_corner = vec3(-2.0, -1.0, -1.0)
-    horizontal = vec3(4.0, 0.0, 0.0)
-    vertical = vec3(0.0, 2.0, 0.0)
-    origin = vec3(0.0, 0.0, 0.0)
-
+    
     hit_list = []
     hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5))
     hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0))
     world = hitable_list(hit_list, 2)
 
+    cam = camera()
+
     for j in range(ny-1, -1, -1):
         for i in range(nx):
-            u = float(i)/float(nx)
-            v = float(j)/float(ny)
-            r = ray(origin, lower_left_corner + horizontal*u + vertical*v)
-
-            p = r.point_at_parameter(2.0)
-            col = color(r, world)
+            col = vec3(0, 0, 0)
+            for s in range(ns):
+                u = float(i+random())/float(nx)
+                v = float(j+random())/float(ny)
+                r = cam.get_ray(u, v)
+                p = r.point_at_parameter(2.0)
+                col += color(r, world)
+            col /= float(ns)
             ir = int(255.99*col[0])
             ig = int(255.99*col[1])
             ib = int(255.99*col[2])
-
             ppm_file.write("{} {} {}\n".format(ir, ig, ib))
 
 
