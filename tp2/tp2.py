@@ -1,5 +1,7 @@
 from math import sqrt
 
+MAXFLOAT = 99999999999999
+
 class vec3():
     def __init__(self, e0, e1, e2):
         self.e = [0 for x in range(3)]
@@ -77,7 +79,7 @@ class vec3():
         return self
     
     def __imul__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, int):
             self.e[0] *= other
             self.e[1] *= other
             self.e[2] *= other
@@ -88,7 +90,7 @@ class vec3():
         return self
     
     def __itruediv__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, int):
             k = 1.0/other
             self.e[0] /= k
             self.e[1] /= k
@@ -106,13 +108,13 @@ class vec3():
         return vec3(self.e[0]-other.e[0], self.e[1]-other.e[1], self.e[2]-other.e[2])
     
     def __mul__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, int):
             return vec3(self.e[0]*other, self.e[1]*other, self.e[2]*other)
         elif isinstance(other, vec3):
             return vec3(self.e[0]*other.e[0], self.e[1]*other.e[1], self.e[2]*other.e[2])
     
     def __truediv__(self, other):
-        if isinstance(other, float):
+        if isinstance(other, float) or isinstance(other, int):
             return vec3(self.e[0]/other, self.e[1]/other, self.e[2]/other)
         elif isinstance(other, vec3):
             return vec3(self.e[0]/other.e[0], self.e[1]/other.e[1], self.e[2]/other.e[2])
@@ -128,23 +130,77 @@ class ray():
     def direction(self):
         return self.B
     
-    def point_at_parameter(self):
-        return self.A + t*self.B
+    def point_at_parameter(self, t):
+        return self.A + self.B*t
 
-def hit_sphere(center, radius, r):
-    oc = r.origin() - center
-    a = r.direction().dot(r.direction())
-    b = oc.dot(r.direction()) * 2.0
-    c = oc.dot(oc) - radius*radius
-    discriminant = b*b - 4*a*c
-    return discriminant > 0
+class hit_record():
+    def __init__(self):
+        self.t = 0.0
+        self.p = None
+        self.normal = None
 
-def color(r):
-    if hit_sphere(vec3(0, 0, -1), 0.5, r):
-        return vec3(1, 0, 0)
-    unit_direction = r.direction().unit_vector()
-    t = 0.5*(unit_direction.y() + 1.0)
-    return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
+    def __str__(self):
+        return "t: {}, p: {}, normal: {}".format(self.t, str(self.p), str(self.normal))
+
+class hitable():
+    def hit(self, r, t_min, t_max, rec):
+        pass
+
+class hitable_list(hitable):
+    def __init__(self, l, n):
+        self.list = l
+        self.list_size = n
+    
+    def hit(self, r, t_min, t_max, rec):
+        temp_rec = hit_record()
+        hit_anything = False
+        closest_so_far = t_max
+        for i in range(self.list_size):
+            if self.list[i].hit(r, t_min, closest_so_far, temp_rec):
+                hit_anything = True
+                closest_so_far = temp_rec.t
+                # rec = temp_rec
+                rec.t = temp_rec.t
+                rec.p = temp_rec.p
+                rec.normal = temp_rec.normal
+        return hit_anything
+
+class sphere(hitable):
+    def __init__(self, center, r):
+        self.center = center
+        self.radius = r
+    
+    def hit(self, r, t_min, t_max, rec):
+        oc = r.origin() - self.center
+        a = r.direction().dot(r.direction())
+        b = oc.dot(r.direction())
+        c = oc.dot(oc) - self.radius*self.radius
+        discriminant = b*b - a*c
+        if discriminant > 0:
+            temp = (-b - sqrt(b*b - a*c))/a
+            if temp < t_max and temp > t_min:
+                rec.t = temp
+                rec.p = r.point_at_parameter(rec.t)
+                rec.normal = (rec.p - self.center) / self.radius
+                return True
+            temp = (-b + sqrt(b*b - a*c))/a
+            if temp < t_max and temp > t_min:
+                rec.t = temp
+                rec.p = r.point_at_parameter(rec.t)
+                rec.normal = (rec.p - self.center) / self.radius
+                return True
+        return False
+
+
+    
+def color(r, world):
+    rec = hit_record()
+    if world.hit(r, 0.0, MAXFLOAT, rec):
+        return vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1)*0.5
+    else:
+        unit_direction = r.direction().unit_vector()
+        t = 0.5*(unit_direction.y() + 1.0)
+        return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
 
 def write_ppm(filename):
     ppm_file = open(filename, "w")
@@ -159,13 +215,19 @@ def write_ppm(filename):
     vertical = vec3(0.0, 2.0, 0.0)
     origin = vec3(0.0, 0.0, 0.0)
 
+    hit_list = []
+    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5))
+    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0))
+    world = hitable_list(hit_list, 2)
+
     for j in range(ny-1, -1, -1):
         for i in range(nx):
             u = float(i)/float(nx)
             v = float(j)/float(ny)
             r = ray(origin, lower_left_corner + horizontal*u + vertical*v)
 
-            col = color(r)
+            p = r.point_at_parameter(2.0)
+            col = color(r, world)
             ir = int(255.99*col[0])
             ig = int(255.99*col[1])
             ib = int(255.99*col[2])
@@ -173,5 +235,12 @@ def write_ppm(filename):
             ppm_file.write("{} {} {}\n".format(ir, ig, ib))
 
 
+def test(rec):
+    rec.normal = "ola"
+
 if __name__ == "__main__":
     write_ppm("img.ppm")
+    # rec = hit_record()
+    # print(rec.normal)
+    # test(rec)
+    # print(rec.normal)
