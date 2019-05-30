@@ -202,10 +202,17 @@ class camera():
     def get_ray(self, u, v):
         return ray(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
     
+def random_in_unit_sphere():
+    p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
+    while p.squared_length() >= 1.0:
+        p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
+    return p
+
 def color(r, world):
     rec = hit_record()
-    if world.hit(r, 0.0, MAXFLOAT, rec):
-        return vec3(rec.normal.x()+1, rec.normal.y()+1, rec.normal.z()+1)*0.5
+    if world.hit(r, 0.001, MAXFLOAT, rec):
+        target = rec.p + rec.normal + random_in_unit_sphere()
+        return color(ray(rec.p, target-rec.p), world)*0.5
     else:
         unit_direction = r.direction().unit_vector()
         t = 0.5*(unit_direction.y() + 1.0)
@@ -238,6 +245,7 @@ def write_ppm(filename):
                 p = r.point_at_parameter(2.0)
                 col += color(r, world)
             col /= float(ns)
+            col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]))
             ir = int(255.99*col[0])
             ig = int(255.99*col[1])
             ib = int(255.99*col[2])
