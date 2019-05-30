@@ -51,6 +51,9 @@ class vec3():
     def unit_vector(self):
         return self/self.length()
 
+    def reflect(self, other):
+        return self - other*self.dot(other)*2
+
     # Override methods
     def __str__(self):
         return "({}, {}, {})".format(self.e[0], self.e[1], self.e[2])
@@ -139,6 +142,13 @@ class hit_record():
         self.t = 0.0
         self.p = None
         self.normal = None
+        self.material = None
+
+    def copy(self, other):
+        self.t = other.t
+        self.p = other.p
+        self.normal = other.normal
+        self.material = other.material
 
     def __str__(self):
         return "t: {}, p: {}, normal: {}".format(self.t, str(self.p), str(self.normal))
@@ -161,15 +171,14 @@ class hitable_list(hitable):
                 hit_anything = True
                 closest_so_far = temp_rec.t
                 # rec = temp_rec
-                rec.t = temp_rec.t
-                rec.p = temp_rec.p
-                rec.normal = temp_rec.normal
+                rec.copy(temp_rec)
         return hit_anything
 
 class sphere(hitable):
-    def __init__(self, center, r):
+    def __init__(self, center, r, material):
         self.center = center
         self.radius = r
+        self.material = material
     
     def hit(self, r, t_min, t_max, rec):
         oc = r.origin() - self.center
@@ -183,12 +192,14 @@ class sphere(hitable):
                 rec.t = temp
                 rec.p = r.point_at_parameter(rec.t)
                 rec.normal = (rec.p - self.center) / self.radius
+                rec.material = self.material
                 return True
             temp = (-b + sqrt(b*b - a*c))/a
             if temp < t_max and temp > t_min:
                 rec.t = temp
                 rec.p = r.point_at_parameter(rec.t)
                 rec.normal = (rec.p - self.center) / self.radius
+                rec.material = self.material
                 return True
         return False
 
@@ -201,18 +212,46 @@ class camera():
 
     def get_ray(self, u, v):
         return ray(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
-    
+
+class material():
+    def scatter(self, r_in, rec):
+        pass
+
+class lambertian(material):
+    def __init__(self, a):
+        self.albedo = a
+
+    def scatter(self, r_in, rec):
+        target = rec.p + rec.normal +random_in_unit_sphere()
+        scattered = ray(rec.p, target-rec.p)
+        attenuation = self.albedo
+        return True, attenuation, scattered
+
+class metal(material):
+    def __init__(self, a, f):
+        self.albedo = a
+        self.fuzz = f if f < 1.0 else 1.0
+
+    def scatter(self, r_in, rec):
+        reflected = r_in.direction().unit_vector().reflect(rec.normal)
+        scattered = ray(rec.p, reflected + random_in_unit_sphere()*self.fuzz)
+        attenuation = self.albedo
+        return (scattered.direction().dot(rec.normal) > 0), attenuation, scattered
+
 def random_in_unit_sphere():
     p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
     while p.squared_length() >= 1.0:
         p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
     return p
 
-def color(r, world):
+def color(r, world, depth):
     rec = hit_record()
     if world.hit(r, 0.001, MAXFLOAT, rec):
-        target = rec.p + rec.normal + random_in_unit_sphere()
-        return color(ray(rec.p, target-rec.p), world)*0.5
+        if depth < 50:
+            scatter, attenuation, scattered = rec.material.scatter(r, rec)
+            if scatter:
+                return attenuation*color(scattered, world, depth+1)
+        return vec3(0,0,0)
     else:
         unit_direction = r.direction().unit_vector()
         t = 0.5*(unit_direction.y() + 1.0)
@@ -229,9 +268,11 @@ def write_ppm(filename):
     ppm_file.write("255\n")
     
     hit_list = []
-    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0))
-    world = hitable_list(hit_list, 2)
+    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.8, 0.3, 0.3))))
+    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.3)))
+    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.8, 0.8), 1.0)))
+    world = hitable_list(hit_list, 4)
 
     cam = camera()
 
@@ -243,7 +284,7 @@ def write_ppm(filename):
                 v = float(j+random())/float(ny)
                 r = cam.get_ray(u, v)
                 p = r.point_at_parameter(2.0)
-                col += color(r, world)
+                col += color(r, world, 0)
             col /= float(ns)
             col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]))
             ir = int(255.99*col[0])
@@ -251,13 +292,5 @@ def write_ppm(filename):
             ib = int(255.99*col[2])
             ppm_file.write("{} {} {}\n".format(ir, ig, ib))
 
-
-def test(rec):
-    rec.normal = "ola"
-
 if __name__ == "__main__":
     write_ppm("img.ppm")
-    # rec = hit_record()
-    # print(rec.normal)
-    # test(rec)
-    # print(rec.normal)
