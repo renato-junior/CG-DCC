@@ -238,11 +238,42 @@ class metal(material):
         attenuation = self.albedo
         return (scattered.direction().dot(rec.normal) > 0), attenuation, scattered
 
+class dieletric(material):
+    def __init__(self, ri):
+        self.ref_idx = ri
+
+    def scatter(self, r_in, rec):
+        reflected = r_in.direction().reflect(rec.normal)
+        attenuation = vec3(1.0, 1.0, 1.0)
+        if r_in.direction().dot(rec.normal) > 0:
+            outward_normal = -rec.normal
+            ni_over_nt = self.ref_idx
+        else:
+            outward_normal = rec.normal
+            ni_over_nt = 1.0 / self.ref_idx
+        refracted_bool, refracted = refract(r_in.direction(), outward_normal, ni_over_nt)
+        if refracted_bool:
+            scattered = ray(rec.p, refracted)
+            return True, attenuation, scattered
+        else:
+            scattered = ray(rec.p, reflected)
+            return False, attenuation, scattered
+        
+
 def random_in_unit_sphere():
     p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
     while p.squared_length() >= 1.0:
         p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
     return p
+
+def refract(v, n, ni_over_nt):
+    uv = v.unit_vector()
+    dt = uv.dot(n)
+    discriminant = 1.0 - ni_over_nt*ni_over_nt*(1-dt*dt)
+    if discriminant > 0:
+        refracted = (uv - n*dt)*ni_over_nt - n*sqrt(discriminant)
+        return True, refracted
+    return False, None
 
 def color(r, world, depth):
     rec = hit_record()
@@ -270,8 +301,8 @@ def write_ppm(filename):
     hit_list = []
     hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.8, 0.3, 0.3))))
     hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.3)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.8, 0.8), 1.0)))
+    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
+    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
     world = hitable_list(hit_list, 4)
 
     cam = camera()
