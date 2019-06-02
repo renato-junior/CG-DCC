@@ -248,16 +248,21 @@ class dieletric(material):
         if r_in.direction().dot(rec.normal) > 0:
             outward_normal = -rec.normal
             ni_over_nt = self.ref_idx
+            cosine = self.ref_idx * r_in.direction().dot(rec.normal) / r_in.direction().length()
         else:
             outward_normal = rec.normal
             ni_over_nt = 1.0 / self.ref_idx
+            cosine = -(r_in.direction().dot(rec.normal)) / r_in.direction().length()
         refracted_bool, refracted = refract(r_in.direction(), outward_normal, ni_over_nt)
         if refracted_bool:
-            scattered = ray(rec.p, refracted)
-            return True, attenuation, scattered
+            reflect_prob = schlick(cosine, self.ref_idx)
         else:
+            reflect_prob = 1.0
+        if random() < reflect_prob:
             scattered = ray(rec.p, reflected)
-            return False, attenuation, scattered
+        else:
+            scattered = ray(rec.p, refracted)
+        return True, attenuation, scattered
         
 
 def random_in_unit_sphere():
@@ -274,6 +279,11 @@ def refract(v, n, ni_over_nt):
         refracted = (uv - n*dt)*ni_over_nt - n*sqrt(discriminant)
         return True, refracted
     return False, None
+
+def schlick(cosine, ref_idx):
+    r0 = (1-ref_idx) / (1+ref_idx)
+    r0 = r0**2
+    return r0 + (1-r0)*((1-cosine)**5)
 
 def color(r, world, depth):
     rec = hit_record()
@@ -299,7 +309,7 @@ def write_ppm(filename):
     ppm_file.write("255\n")
     
     hit_list = []
-    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.8, 0.3, 0.3))))
+    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
     hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
     hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
     hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
