@@ -1,7 +1,7 @@
-from math import sqrt
+from math import sqrt, pi, tan
 from random import random
 
-MAXFLOAT = 99999999999999
+MAXFLOAT = float("inf")
 
 class vec3():
     def __init__(self, e0, e1, e2):
@@ -204,11 +204,17 @@ class sphere(hitable):
         return False
 
 class camera():
-    def __init__(self):
-        self.lower_left_corner = vec3(-2.0, -1.0, -1.0)
-        self.horizontal = vec3(4.0, 0.0, 0.0)
-        self.vertical = vec3(0.0, 2.0, 0.0)
-        self.origin = vec3(0.0, 0.0, 0.0)
+    def __init__(self, lookfrom, lookat, vup, vfov, aspect):
+        theta = vfov*pi/180
+        half_height = tan(theta/2)
+        half_width = aspect * half_height
+        self.origin = lookfrom
+        w = (lookfrom - lookat).unit_vector()
+        u = (vup.cross(w)).unit_vector()
+        v = w.cross(u)
+        self.lower_left_corner = self.origin - u*half_width - v*half_height - w
+        self.horizontal = u*2*half_width
+        self.vertical = v*2*half_height
 
     def get_ray(self, u, v):
         return ray(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
@@ -315,7 +321,7 @@ def write_ppm(filename):
     hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
     world = hitable_list(hit_list, 4)
 
-    cam = camera()
+    cam = camera(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 90, float(nx)/float(ny))
 
     for j in range(ny-1, -1, -1):
         for i in range(nx):
