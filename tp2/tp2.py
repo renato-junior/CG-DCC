@@ -204,20 +204,23 @@ class sphere(hitable):
         return False
 
 class camera():
-    def __init__(self, lookfrom, lookat, vup, vfov, aspect):
+    def __init__(self, lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist):
+        self.lens_radius = aperture/2
         theta = vfov*pi/180
         half_height = tan(theta/2)
         half_width = aspect * half_height
         self.origin = lookfrom
-        w = (lookfrom - lookat).unit_vector()
-        u = (vup.cross(w)).unit_vector()
-        v = w.cross(u)
-        self.lower_left_corner = self.origin - u*half_width - v*half_height - w
-        self.horizontal = u*2*half_width
-        self.vertical = v*2*half_height
+        self.w = (lookfrom - lookat).unit_vector()
+        self.u = (vup.cross(self.w)).unit_vector()
+        self.v = self.w.cross(self.u)
+        self.lower_left_corner = self.origin - self.u*half_width*focus_dist - self.v*half_height*focus_dist - self.w*focus_dist
+        self.horizontal = self.u*2*half_width*focus_dist
+        self.vertical = self.v*2*half_height*focus_dist
 
-    def get_ray(self, u, v):
-        return ray(self.origin, self.lower_left_corner + self.horizontal*u + self.vertical*v - self.origin)
+    def get_ray(self, s, t):
+        rd = random_in_unit_disk()*self.lens_radius
+        offset = self.u*rd.x() + self.v*rd.y()
+        return ray(self.origin + offset, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin - offset)
 
 class material():
     def scatter(self, r_in, rec):
@@ -269,7 +272,12 @@ class dieletric(material):
         else:
             scattered = ray(rec.p, refracted)
         return True, attenuation, scattered
-        
+
+def random_in_unit_disk():
+    p = vec3(random(), random(), 0.0)*2.0 - vec3(1, 1, 0)
+    while p.dot(p) >= 1.0:
+        p = vec3(random(), random(), 0.0)*2.0 - vec3(1, 1, 0)
+    return p   
 
 def random_in_unit_sphere():
     p = vec3(random(), random(), random())*2.0 - vec3(1, 1, 1)
@@ -321,7 +329,11 @@ def write_ppm(filename):
     hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
     world = hitable_list(hit_list, 4)
 
-    cam = camera(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 90, float(nx)/float(ny))
+    lookfrom = vec3(3, 3, 2)
+    lookat = vec3(0, 0, -1)
+    dist_to_focus = (lookfrom-lookat).length()
+    aperture = 2.0
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
 
     for j in range(ny-1, -1, -1):
         for i in range(nx):
