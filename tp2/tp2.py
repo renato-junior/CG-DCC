@@ -312,27 +312,54 @@ def color(r, world, depth):
         t = 0.5*(unit_direction.y() + 1.0)
         return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
 
+def random_scene():
+    n = 500
+    h_list = []
+    h_list.append(sphere(vec3(0, -1000, 0), 1000, lambertian(vec3(0.5, 0.5, 0.5))))
+    i = 1
+    for a in range(-11, 11):
+        for b in range(-11, 11):
+            choose_mat = random()
+            center = vec3(a+0.9*random(), 0.2, b+0.9*random())
+            if (center-vec3(4, 0.2, 0)).length() > 0.9:
+                if choose_mat < 0.8: # diffuse
+                    h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
+                    i += 1
+                elif choose_mat < 0.95: # metal
+                    h_list.append(sphere(center, 0.2, metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
+                    i += 1
+                else: # glass
+                    h_list.append(sphere(center, 0.2, dieletric(1.5)))
+                    i += 1
+    h_list.append(sphere(vec3(0, 1, 0), 1.0, dieletric(1.5)))
+    h_list.append(sphere(vec3(-4, 1, 0), 1.0, lambertian(vec3(0.4, 0.2, 0.1))))
+    h_list.append(sphere(vec3(4, 1, 0), 1.0, metal(vec3(0.7, 0.6, 0.5), 0.0)))
+    i += 3
+    return hitable_list(h_list, i)
+
 def write_ppm(filename):
-    nx = 200
-    ny = 100
-    ns = 100
+    nx = 1200
+    ny = 800
+    ns = 10
 
     ppm_file = open(filename, "w")
     ppm_file.write("P3\n")
     ppm_file.write("{} {}\n".format(nx, ny))
     ppm_file.write("255\n")
     
-    hit_list = []
-    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    world = hitable_list(hit_list, 4)
+    # hit_list = []
+    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
+    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    # world = hitable_list(hit_list, 4)
 
-    lookfrom = vec3(3, 3, 2)
-    lookat = vec3(0, 0, -1)
-    dist_to_focus = (lookfrom-lookat).length()
-    aperture = 2.0
+    world = random_scene()
+
+    lookfrom = vec3(13, 2, 3)
+    lookat = vec3(0, 0, 0)
+    dist_to_focus = 10.0
+    aperture = 0.1
     cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
 
     for j in range(ny-1, -1, -1):
