@@ -396,14 +396,14 @@ def create_ppm_file(filename, nx, ny):
     ppm_file.write("255\n")
     return ppm_file
 
-def write_ppm(filename, multicore=False):
-    nx = 360
-    ny = 240
-    ns = 10
+def write_ppm(filename, width, height, rays, multicore=False):
+    nx = width
+    ny = height
+    ns = rays
     
     # hit_list = []
     # # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 10000))
+    # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 1.0))
     # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
     # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
     # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
@@ -522,7 +522,11 @@ def run_sub_image(sx, ex, sy, ey, nx, ny, ns, world, cam, ppm_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ray Tracer.')
+    parser.add_argument('filename', help="Name of output file. (e.g. img.ppm)")
+    parser.add_argument('--width', default=480, type=int, help="The width of the generated image.")
+    parser.add_argument('--height', default=340, type=int, help="The height of the generated image.")
+    parser.add_argument('--rays', default=10, type=int, help="The number of rays to be cast per pixel.")
     parser.add_argument('--multicore', action='store_true', default=False, help="Run the algorithm on multiple cores. If false, the algorithm will run on a single core.")
     args = parser.parse_args()
     
-    write_ppm("img.ppm", args.multicore)
+    write_ppm(args.filename, args.width, args.height, args.rays, args.multicore)
