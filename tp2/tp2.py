@@ -341,9 +341,9 @@ def random_scene():
     i += 3
     return hitable_list(h_list, i)
 
-def write_ppm(filename):
-    nx = 1200
-    ny = 800
+def write_ppm(filename, multicore=False):
+    nx = 360
+    ny = 240
     ns = 10
 
     ppm_file = open(filename, "w")
@@ -351,14 +351,14 @@ def write_ppm(filename):
     ppm_file.write("{} {}\n".format(nx, ny))
     ppm_file.write("255\n")
     
-    # hit_list = []
-    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
-    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    # world = hitable_list(hit_list, 4)
+    hit_list = []
+    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
+    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    world = hitable_list(hit_list, 4)
 
-    world = random_scene()
+    # world = random_scene()
 
     lookfrom = vec3(13, 2, 3)
     lookat = vec3(0, 0, 0)
@@ -366,8 +366,32 @@ def write_ppm(filename):
     aperture = 0.1
     cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
 
+    if multicore:
+        process_multi_core(ppm_file, nx, ny, ns, world, cam)
+    else:
+        for j in range(ny-1, -1, -1):
+            for i in range(nx):
+                col = vec3(0, 0, 0)
+                for s in range(ns):
+                    u = float(i+random())/float(nx)
+                    v = float(j+random())/float(ny)
+                    r = cam.get_ray(u, v)
+                    p = r.point_at_parameter(2.0)
+                    col += color(r, world, 0)
+                col /= float(ns)
+                col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]))
+                ir = int(255.99*col[0])
+                ig = int(255.99*col[1])
+                ib = int(255.99*col[2])
+                ppm_file.write("{} {} {}\n".format(ir, ig, ib))
+    
+    ppm_file.close()
+
+def process_multi_core(ppm_file, nx, ny, ns, world, cam):
+    # Get number of cores
     n_cores = cpu_count()
     
+    # Divide image in number of cores slices
     divisions_in_x = n_cores//int(sqrt(n_cores))
     divisions_in_y = n_cores//divisions_in_x
 
@@ -389,17 +413,20 @@ def write_ppm(filename):
                 ex = (j+1)*size_div_x
             else:
                 ex = nx
+            # Create a process
             p = Process(target=run_sub_image, args=(sx, ex, sy, ey, nx, ny, ns, world, cam, "{}.ppm".format(n_p)))
             procs.append(p)
             p.start()
             n_p+=1
-    for p in procs:
+
+    for p in procs: # Wait for all the created process to finish
         p.join()
     
     print("Ended processing")
     print("Starting writing result")
     sys.stdout.flush()
 
+    # Combine generated images to create the final image
     n_file = 0
     for i in range(divisions_in_y):
         files_list = []
@@ -429,9 +456,6 @@ def write_ppm(filename):
             
         for f in files_list:
             f.close()
-    
-    ppm_file.close()
-    
 
 def run_sub_image(sx, ex, sy, ey, nx, ny, ns, world, cam, ppm_name):
     ppm_file = open(ppm_name, "w")
@@ -456,53 +480,9 @@ def run_sub_image(sx, ex, sy, ey, nx, ny, ns, world, cam, ppm_name):
     print("end proc", ppm_name, sx, ex, sy, ey)
     ppm_file.close()
 
-def write_ppm_single_core(filename):
-    nx = 1200
-    ny = 800
-    ns = 10
-
-    ppm_file = open(filename, "w")
-    ppm_file.write("P3\n")
-    ppm_file.write("{} {}\n".format(nx, ny))
-    ppm_file.write("255\n")
-    
-    hit_list = []
-    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    world = hitable_list(hit_list, 4)
-
-    # world = random_scene()
-
-    lookfrom = vec3(13, 2, 3)
-    lookat = vec3(0, 0, 0)
-    dist_to_focus = 10.0
-    aperture = 0.1
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
-
-    for j in range(ny-1, -1, -1):
-        for i in range(nx):
-            col = vec3(0, 0, 0)
-            for s in range(ns):
-                u = float(i+random())/float(nx)
-                v = float(j+random())/float(ny)
-                r = cam.get_ray(u, v)
-                p = r.point_at_parameter(2.0)
-                col += color(r, world, 0)
-            col /= float(ns)
-            col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]))
-            ir = int(255.99*col[0])
-            ig = int(255.99*col[1])
-            ib = int(255.99*col[2])
-            ppm_file.write("{} {} {}\n".format(ir, ig, ib))
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ray Tracer.')
     parser.add_argument('--multicore', action='store_true', default=False, help="Run the algorithm on multiple cores. If false, the algorithm will run on a single core.")
     args = parser.parse_args()
     
-    if args.multicore:
-        write_ppm("img.ppm")
-    else:
-        write_ppm_single_core("img.ppm")
+    write_ppm("img.ppm", args.multicore)
