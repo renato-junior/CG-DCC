@@ -128,9 +128,10 @@ class vec3():
             return vec3(self.e[0]/other.e[0], self.e[1]/other.e[1], self.e[2]/other.e[2])
 
 class ray():
-    def __init__(self, a, b):
+    def __init__(self, a, b, ti=0.0):
         self.A = a
         self.B = b
+        self.time = ti
     
     def origin(self):
         return self.A
@@ -207,8 +208,43 @@ class sphere(hitable):
                 return True
         return False
 
+class moving_sphere(hitable):
+    def __init__(self, cen0, cen1, r, material, t0, t1):
+        self.radius = r
+        self.material = material
+        self.time0 = t0
+        self.time1 = t1
+        self.center0 = cen0
+        self.center1 = cen1
+    
+    def hit(self, r, t_min, t_max, rec):
+        oc = r.origin() - self.center(r.time)
+        a = r.direction().dot(r.direction())
+        b = oc.dot(r.direction())
+        c = oc.dot(oc) - self.radius*self.radius
+        discriminant = b*b - a*c
+        if discriminant > 0:
+            temp = (-b - sqrt(b*b - a*c))/a
+            if temp < t_max and temp > t_min:
+                rec.t = temp
+                rec.p = r.point_at_parameter(rec.t)
+                rec.normal = (rec.p - self.center(r.time)) / self.radius
+                rec.material = self.material
+                return True
+            temp = (-b + sqrt(b*b - a*c))/a
+            if temp < t_max and temp > t_min:
+                rec.t = temp
+                rec.p = r.point_at_parameter(rec.t)
+                rec.normal = (rec.p - self.center(r.time)) / self.radius
+                rec.material = self.material
+                return True
+        return False
+    
+    def center(self, time):
+        return self.center0 + (self.center1 - self.center0)*((time - self.time0) / (self.time1 - self.time0))
+
 class camera():
-    def __init__(self, lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist):
+    def __init__(self, lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist, t0, t1):
         self.lens_radius = aperture/2
         theta = vfov*pi/180
         half_height = tan(theta/2)
@@ -220,11 +256,14 @@ class camera():
         self.lower_left_corner = self.origin - self.u*half_width*focus_dist - self.v*half_height*focus_dist - self.w*focus_dist
         self.horizontal = self.u*2*half_width*focus_dist
         self.vertical = self.v*2*half_height*focus_dist
+        self.time0 = t0
+        self.time1 = t1
 
     def get_ray(self, s, t):
         rd = random_in_unit_disk()*self.lens_radius
         offset = self.u*rd.x() + self.v*rd.y()
-        return ray(self.origin + offset, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin - offset)
+        time = self.time0 + random()*(self.time1-self.time0)
+        return ray(self.origin + offset, self.lower_left_corner + self.horizontal*s + self.vertical*t - self.origin - offset, time)
 
 class material():
     def scatter(self, r_in, rec):
@@ -327,7 +366,11 @@ def random_scene():
             center = vec3(a+0.9*random(), 0.2, b+0.9*random())
             if (center-vec3(4, 0.2, 0)).length() > 0.9:
                 if choose_mat < 0.8: # diffuse
-                    h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
+                    mov_prob = random()
+                    if mov_prob < 0.6:
+                        h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
+                    else:
+                        h_list.append(moving_sphere(center, center+vec3(0,0.5*random(),0), 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random())), 0.0, 1.0))
                     i += 1
                 elif choose_mat < 0.95: # metal
                     h_list.append(sphere(center, 0.2, metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
@@ -353,20 +396,20 @@ def write_ppm(filename, multicore=False):
     ny = 240
     ns = 10
     
-    hit_list = []
-    hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    world = hitable_list(hit_list, 4)
+    # hit_list = []
+    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
+    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    # world = hitable_list(hit_list, 4)
 
-    # world = random_scene()
+    world = random_scene()
 
     lookfrom = vec3(13, 2, 3)
     lookat = vec3(0, 0, 0)
     dist_to_focus = 10.0
     aperture = 0.1
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     if multicore:
         ppm_file = create_ppm_file(filename, nx, ny)
