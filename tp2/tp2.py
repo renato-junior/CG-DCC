@@ -399,23 +399,29 @@ def create_ppm_file(filename, nx, ny):
 def write_ppm(filename, multicore=False):
     nx = 360
     ny = 240
-    ns = 30
+    ns = 10
     
-    hit_list = []
-    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 10000))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    world = hitable_list(hit_list, 4)
+    # hit_list = []
+    # # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 10000))
+    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
+    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    # world = hitable_list(hit_list, 4)
 
-    # world = random_scene()
+    # lookfrom = vec3(-4, 1.0, 0.5)
+    # lookat = vec3(0, 0, -1)
+    # dist_to_focus = 2.0
+    # aperture = 0.01
+    # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
-    lookfrom = vec3(-4, 1.0, 0.5)
-    lookat = vec3(0, 0, -1)
-    dist_to_focus = 2.0
-    aperture = 0.01
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+    world = random_scene()
+
+    lookfrom = vec3(13, 2, 3)
+    lookat = vec3(0, 0, 0)
+    dist_to_focus = 10.0
+    aperture = 0.1
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     if multicore:
         ppm_file = create_ppm_file(filename, nx, ny)
