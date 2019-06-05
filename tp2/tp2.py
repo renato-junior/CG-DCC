@@ -341,15 +341,17 @@ def random_scene():
     i += 3
     return hitable_list(h_list, i)
 
-def write_ppm(filename, multicore=False):
-    nx = 360
-    ny = 240
-    ns = 10
-
+def create_ppm_file(filename, nx, ny):
     ppm_file = open(filename, "w")
     ppm_file.write("P3\n")
     ppm_file.write("{} {}\n".format(nx, ny))
     ppm_file.write("255\n")
+    return ppm_file
+
+def write_ppm(filename, multicore=False):
+    nx = 360
+    ny = 240
+    ns = 10
     
     hit_list = []
     hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
@@ -367,25 +369,11 @@ def write_ppm(filename, multicore=False):
     cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus)
 
     if multicore:
+        ppm_file = create_ppm_file(filename, nx, ny)
         process_multi_core(ppm_file, nx, ny, ns, world, cam)
+        ppm_file.close()
     else:
-        for j in range(ny-1, -1, -1):
-            for i in range(nx):
-                col = vec3(0, 0, 0)
-                for s in range(ns):
-                    u = float(i+random())/float(nx)
-                    v = float(j+random())/float(ny)
-                    r = cam.get_ray(u, v)
-                    p = r.point_at_parameter(2.0)
-                    col += color(r, world, 0)
-                col /= float(ns)
-                col = vec3(sqrt(col[0]), sqrt(col[1]), sqrt(col[2]))
-                ir = int(255.99*col[0])
-                ig = int(255.99*col[1])
-                ib = int(255.99*col[2])
-                ppm_file.write("{} {} {}\n".format(ir, ig, ib))
-    
-    ppm_file.close()
+        run_sub_image(0, nx, 0, ny, nx, ny, ns, world, cam, filename)
 
 def process_multi_core(ppm_file, nx, ny, ns, world, cam):
     # Get number of cores
@@ -458,10 +446,7 @@ def process_multi_core(ppm_file, nx, ny, ns, world, cam):
             f.close()
 
 def run_sub_image(sx, ex, sy, ey, nx, ny, ns, world, cam, ppm_name):
-    ppm_file = open(ppm_name, "w")
-    ppm_file.write("P3\n")
-    ppm_file.write("{} {}\n".format(ex-sx, ey-sy))
-    ppm_file.write("255\n")
+    ppm_file = create_ppm_file(ppm_name, ex-sx, ey-sy)
     for j in range(ey-1, sy-1, -1):
         for i in range(sx, ex):
             col = vec3(0, 0, 0)
