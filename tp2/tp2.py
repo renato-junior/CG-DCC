@@ -1,11 +1,13 @@
 from math import sqrt, pi, tan
-from random import random
+from random import random, seed
 import argparse
 from multiprocessing import Process, Queue, cpu_count
 
 import sys
 
 MAXFLOAT = float("inf")
+
+seed(20)
 
 class vec3():
     def __init__(self, e0, e1, e2):
@@ -148,12 +150,14 @@ class hit_record():
         self.p = None
         self.normal = None
         self.material = None
+        self.time = 0.0
 
     def copy(self, other):
         self.t = other.t
         self.p = other.p
         self.normal = other.normal
         self.material = other.material
+        self.time = other.time
 
     def __str__(self):
         return "t: {}, p: {}, normal: {}".format(self.t, str(self.p), str(self.normal))
@@ -169,6 +173,7 @@ class hitable_list(hitable):
     
     def hit(self, r, t_min, t_max, rec):
         temp_rec = hit_record()
+        temp_rec.time = r.time
         hit_anything = False
         closest_so_far = t_max
         for i in range(self.list_size):
@@ -275,7 +280,7 @@ class lambertian(material):
 
     def scatter(self, r_in, rec):
         target = rec.p + rec.normal +random_in_unit_sphere()
-        scattered = ray(rec.p, target-rec.p)
+        scattered = ray(rec.p, target-rec.p, rec.time)
         attenuation = self.albedo
         return True, attenuation, scattered
 
@@ -286,7 +291,7 @@ class metal(material):
 
     def scatter(self, r_in, rec):
         reflected = r_in.direction().unit_vector().reflect(rec.normal)
-        scattered = ray(rec.p, reflected + random_in_unit_sphere()*self.fuzz)
+        scattered = ray(rec.p, reflected + random_in_unit_sphere()*self.fuzz, rec.time)
         attenuation = self.albedo
         return (scattered.direction().dot(rec.normal) > 0), attenuation, scattered
 
@@ -311,9 +316,9 @@ class dieletric(material):
         else:
             reflect_prob = 1.0
         if random() < reflect_prob:
-            scattered = ray(rec.p, reflected)
+            scattered = ray(rec.p, reflected, rec.time)
         else:
-            scattered = ray(rec.p, refracted)
+            scattered = ray(rec.p, refracted, rec.time)
         return True, attenuation, scattered
 
 def random_in_unit_disk():
@@ -394,22 +399,23 @@ def create_ppm_file(filename, nx, ny):
 def write_ppm(filename, multicore=False):
     nx = 360
     ny = 240
-    ns = 10
+    ns = 30
     
-    # hit_list = []
+    hit_list = []
     # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 1.0)))
-    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    # world = hitable_list(hit_list, 4)
+    hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 10000))
+    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
+    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    world = hitable_list(hit_list, 4)
 
-    world = random_scene()
+    # world = random_scene()
 
-    lookfrom = vec3(13, 2, 3)
-    lookat = vec3(0, 0, 0)
-    dist_to_focus = 10.0
-    aperture = 0.1
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+    lookfrom = vec3(-4, 1.0, 0.5)
+    lookat = vec3(0, 0, -1)
+    dist_to_focus = 2.0
+    aperture = 0.01
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     if multicore:
         ppm_file = create_ppm_file(filename, nx, ny)
