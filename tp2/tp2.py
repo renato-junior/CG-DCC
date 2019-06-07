@@ -7,7 +7,7 @@ import sys
 
 MAXFLOAT = float("inf")
 
-seed(20)
+# seed(2000)
 
 class vec3():
     def __init__(self, e0, e1, e2):
