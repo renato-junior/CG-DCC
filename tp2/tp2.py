@@ -466,17 +466,29 @@ def random_scene():
             center = vec3(a+0.9*random(), 0.2, b+0.9*random())
             if (center-vec3(4, 0.2, 0)).length() > 0.9:
                 if choose_mat < 0.8: # diffuse
-                    mov_prob = random()
-                    if mov_prob < 0.6:
-                        h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
+                    sphere_prob = random()
+                    if sphere_prob < 0.5:
+                        mov_prob = random()
+                        if mov_prob < 0.6:
+                            h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
+                        else:
+                            h_list.append(moving_sphere(center, center+vec3(0,0.5*random(),0), 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random())), 0.0, 1.0))
                     else:
-                        h_list.append(moving_sphere(center, center+vec3(0,0.5*random(),0), 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random())), 0.0, 1.0))
+                        h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2), lambertian(vec3(random()*random(), random()*random(), random()*random()))))
                     i += 1
                 elif choose_mat < 0.95: # metal
-                    h_list.append(sphere(center, 0.2, metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
+                    sphere_prob = random()
+                    if sphere_prob < 0.5:
+                        h_list.append(sphere(center, 0.2, metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
+                    else:
+                        h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2), metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
                     i += 1
                 else: # glass
-                    h_list.append(sphere(center, 0.2, dieletric(1.5)))
+                    sphere_prob = random()
+                    if sphere_prob < 0.5:
+                        h_list.append(sphere(center, 0.2, dieletric(1.5)))
+                    else:
+                        h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2),  dieletric(1.5)))
                     i += 1
     h_list.append(sphere(vec3(0, 1, 0), 1.0, dieletric(1.5)))
     h_list.append(sphere(vec3(-4, 1, 0), 1.0, lambertian(vec3(0.4, 0.2, 0.1))))
@@ -496,21 +508,21 @@ def write_ppm(filename, width, height, rays, multicore=False):
     ny = height
     ns = rays
     
-    hit_list = []
-    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
-    hit_list.append(box(vec3(-0.25,-0.25,-1), vec3(0.25,0.25,0), lambertian(vec3(0.1, 0.2, 0.5))))
-    # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 1.0))
-    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
-    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
-    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
-    # hit_list.append(xy_rect(0, 2, 0, 2, -3, lambertian(vec3(0,0,1))))
-    world = hitable_list(hit_list, 4)
+    # hit_list = []
+    # # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    # hit_list.append(box(vec3(-0.25,-0.25,-1), vec3(0.25,0.25,0), lambertian(vec3(0.1, 0.2, 0.5))))
+    # # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 1.0))
+    # hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    # hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
+    # hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    # # hit_list.append(xy_rect(0, 2, 0, 2, -3, lambertian(vec3(0,0,1))))
+    # world = hitable_list(hit_list, 4)
 
-    lookfrom = vec3(0.0, 1.0, 4.5)
-    lookat = vec3(0, 0, -1)
-    dist_to_focus = 2.0
-    aperture = 0.01
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+    # lookfrom = vec3(0.0, 1.0, 4.5)
+    # lookat = vec3(0, 0, -1)
+    # dist_to_focus = 2.0
+    # aperture = 0.01
+    # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     # hit_list = []
     # # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
@@ -526,13 +538,13 @@ def write_ppm(filename, width, height, rays, multicore=False):
     # aperture = 0.01
     # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
-    # world = random_scene()
+    world = random_scene()
 
-    # lookfrom = vec3(13, 2, 3)
-    # lookat = vec3(0, 0, 0)
-    # dist_to_focus = 10.0
-    # aperture = 0.1
-    # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+    lookfrom = vec3(13, 2, 3)
+    lookat = vec3(0, 0, 0)
+    dist_to_focus = 10.0
+    aperture = 0.1
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     if multicore:
         ppm_file = create_ppm_file(filename, nx, ny)
