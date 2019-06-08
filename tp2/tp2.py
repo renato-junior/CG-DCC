@@ -248,6 +248,101 @@ class moving_sphere(hitable):
     def center(self, time):
         return self.center0 + (self.center1 - self.center0)*((time - self.time0) / (self.time1 - self.time0))
 
+class xy_rect(hitable):
+    def __init__(self, x0, x1, y0, y1, k, material):
+        self.x0 = x0
+        self.x1 = x1
+        self.y0 = y0
+        self.y1 = y1
+        self.k = k
+        self.material = material
+    
+    def hit(self, r, t_min, t_max, rec):
+        t = (self.k-r.origin().z())/r.direction().z()
+        if t < t_min or t > t_max:
+            return False
+        x = r.origin().x() + t*r.direction().x()
+        y = r.origin().y() + t*r.direction().y()
+        if x < self.x0 or x > self.x1 or y < self.y0 or y > self.y1:
+            return False
+        rec.t = t
+        rec.material = self.material
+        rec.p = r.point_at_parameter(t)
+        rec.normal = vec3(0,0,1)
+        return True
+
+class xz_rect(hitable):
+    def __init__(self, x0, x1, z0, z1, k, material):
+        self.x0 = x0
+        self.x1 = x1
+        self.z0 = z0
+        self.z1 = z1
+        self.k = k
+        self.material = material
+    
+    def hit(self, r, t_min, t_max, rec):
+        t = (self.k-r.origin().y())/r.direction().y()
+        if t < t_min or t > t_max:
+            return False
+        x = r.origin().x() + t*r.direction().x()
+        z = r.origin().z() + t*r.direction().z()
+        if x < self.x0 or x > self.x1 or z < self.z0 or z > self.z1:
+            return False
+        rec.t = t
+        rec.material = self.material
+        rec.p = r.point_at_parameter(t)
+        rec.normal = vec3(0,1,0)
+        return True
+
+class yz_rect(hitable):
+    def __init__(self, y0, y1, z0, z1, k, material):
+        self.y0 = y0
+        self.y1 = y1
+        self.z0 = z0
+        self.z1 = z1
+        self.k = k
+        self.material = material
+    
+    def hit(self, r, t_min, t_max, rec):
+        t = (self.k-r.origin().x())/r.direction().x()
+        if t < t_min or t > t_max:
+            return False
+        y = r.origin().y() + t*r.direction().y()
+        z = r.origin().z() + t*r.direction().z()
+        if z < self.z0 or z > self.z1 or y < self.y0 or y > self.y1:
+            return False
+        rec.t = t
+        rec.material = self.material
+        rec.p = r.point_at_parameter(t)
+        rec.normal = vec3(1,0,0)
+        return True
+
+class flip_normals(hitable):
+    def __init__(self, p):
+        self.ptr = p
+    
+    def hit(self, r, t_min, t_max, rec):
+        if self.ptr.hit(r, t_min, t_max, rec):
+            rec.normal = -rec.normal
+            return True
+        return False
+
+class box(hitable):
+    def __init__(self, p0, p1, material):
+        self.pmin = p0
+        self.pmax = p1
+        h_list = []
+        h_list.append(xy_rect(p0.x(), p1.x(), p0.y(), p1.y(), p1.z(), material))
+        h_list.append(flip_normals(xy_rect(p0.x(), p1.x(), p0.y(), p1.y(), p0.z(), material)))
+        h_list.append(xz_rect(p0.x(), p1.x(), p0.z(), p1.z(), p1.y(), material))
+        h_list.append(flip_normals(xz_rect(p0.x(), p1.x(), p0.z(), p1.z(), p0.y(), material)))
+        h_list.append(yz_rect(p0.y(), p1.y(), p0.z(), p1.z(), p1.x(), material))
+        h_list.append(flip_normals(yz_rect(p0.y(), p1.y(), p0.z(), p1.z(), p0.x(), material)))
+        self.hit_list = hitable_list(h_list, 6)
+    
+    def hit(self, r, t_min, t_max, rec):
+        return self.hit_list.hit(r, t_min, t_max, rec)
+
 class camera():
     def __init__(self, lookfrom, lookat, vup, vfov, aspect, aperture, focus_dist, t0, t1):
         self.lens_radius = aperture/2
@@ -401,6 +496,22 @@ def write_ppm(filename, width, height, rays, multicore=False):
     ny = height
     ns = rays
     
+    hit_list = []
+    # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
+    hit_list.append(box(vec3(-0.25,-0.25,-1), vec3(0.25,0.25,0), lambertian(vec3(0.1, 0.2, 0.5))))
+    # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 1.0))
+    hit_list.append(sphere(vec3(0.0, -100.5, -1.0), 100.0, lambertian(vec3(0.8, 0.8, 0.0))))
+    hit_list.append(sphere(vec3(1.0, 0.0, -1.0), 0.5, metal(vec3(0.8, 0.6, 0.2), 0.0)))
+    hit_list.append(sphere(vec3(-1.0, 0.0, -1.0), 0.5, dieletric(1.5)))
+    # hit_list.append(xy_rect(0, 2, 0, 2, -3, lambertian(vec3(0,0,1))))
+    world = hitable_list(hit_list, 4)
+
+    lookfrom = vec3(0.0, 1.0, 4.5)
+    lookat = vec3(0, 0, -1)
+    dist_to_focus = 2.0
+    aperture = 0.01
+    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+
     # hit_list = []
     # # hit_list.append(sphere(vec3(0.0, 0.0, -1.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5))))
     # hit_list.append(moving_sphere(vec3(0.0, 0.0, -1.0), vec3(0.0, 0.25, 0.0), 0.5, lambertian(vec3(0.1, 0.2, 0.5)), 0.0, 1.0))
@@ -415,13 +526,13 @@ def write_ppm(filename, width, height, rays, multicore=False):
     # aperture = 0.01
     # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 30, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
-    world = random_scene()
+    # world = random_scene()
 
-    lookfrom = vec3(13, 2, 3)
-    lookat = vec3(0, 0, 0)
-    dist_to_focus = 10.0
-    aperture = 0.1
-    cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
+    # lookfrom = vec3(13, 2, 3)
+    # lookat = vec3(0, 0, 0)
+    # dist_to_focus = 10.0
+    # aperture = 0.1
+    # cam = camera(lookfrom, lookat, vec3(0, 1, 0), 20, float(nx)/float(ny), aperture, dist_to_focus, 0.0, 1.0)
 
     if multicore:
         ppm_file = create_ppm_file(filename, nx, ny)
