@@ -471,7 +471,7 @@ def process_multi_core(ppm_file, nx, ny, ns, world, cam):
 
     # Combine generated images to create the final image
     n_file = 0
-    for i in range(divisions_in_y):
+    for i in range(divisions_in_y-1, -1, -1):
         files_list = []
         for j in range(divisions_in_x):
             sub_ppm = open("{}.ppm".format(n_file), "r")
