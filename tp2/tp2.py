@@ -456,6 +456,7 @@ def color(r, world, depth):
         return vec3(1.0, 1.0, 1.0)*(1.0-t) + vec3(0.5, 0.7, 1.0)*t
 
 def random_scene():
+    PROB_SPHERE = 0.7
     n = 500
     h_list = []
     h_list.append(sphere(vec3(0, -1000, 0), 1000, lambertian(vec3(0.5, 0.5, 0.5))))
@@ -465,9 +466,9 @@ def random_scene():
             choose_mat = random()
             center = vec3(a+0.9*random(), 0.2, b+0.9*random())
             if (center-vec3(4, 0.2, 0)).length() > 0.9:
-                if choose_mat < 0.8: # diffuse
+                if choose_mat < 0.5: # diffuse
                     sphere_prob = random()
-                    if sphere_prob < 0.5:
+                    if sphere_prob < PROB_SPHERE:
                         mov_prob = random()
                         if mov_prob < 0.6:
                             h_list.append(sphere(center, 0.2, lambertian(vec3(random()*random(), random()*random(), random()*random()))))
@@ -476,16 +477,16 @@ def random_scene():
                     else:
                         h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2), lambertian(vec3(random()*random(), random()*random(), random()*random()))))
                     i += 1
-                elif choose_mat < 0.95: # metal
+                elif choose_mat < 0.8: # metal
                     sphere_prob = random()
-                    if sphere_prob < 0.5:
+                    if sphere_prob < PROB_SPHERE:
                         h_list.append(sphere(center, 0.2, metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
                     else:
                         h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2), metal(vec3(0.5*(1 + random()), 0.5*(1 + random()), 0.5*(1 + random())), 0.5*random())))
                     i += 1
                 else: # glass
                     sphere_prob = random()
-                    if sphere_prob < 0.5:
+                    if sphere_prob < PROB_SPHERE:
                         h_list.append(sphere(center, 0.2, dieletric(1.5)))
                     else:
                         h_list.append(box(center-(vec3(1,1,1)*0.2), center+(vec3(1,1,1)*0.2),  dieletric(1.5)))
