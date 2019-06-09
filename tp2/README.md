@@ -80,3 +80,5 @@ Renderizar cena usando 10 raios por pixel e gerar uma imagem 200x100 usando vár
 
   python tp2.py img.ppm --width 200 --height 100 --rays 10 --multicore
 
+Este trabalho foi testado no Ubuntu 19.04 usando Python 3.6.5.
+
