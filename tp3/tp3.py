@@ -1,4 +1,5 @@
 from ctypes import *
+import struct
 
 MD2_IDENT = 844121161
 MD2_VERSION = 8
@@ -39,7 +40,7 @@ class vec3():
     def __setitem__(self, key, value):
         self.vec[key] = value
 
-class vertex():
+class vertex_t():
     def __init__(self):
         self.v = [0 for i in range(3)]
         self.lightnormalindex = 0
@@ -54,7 +55,7 @@ class frame_t():
         self.scale = [0 for i in range(3)]
         self.translate = [0 for i in range(3)]
         self.name = ""
-        self.verts = None
+        self.verts = []
 
 class triangle_t():
     def __init__(self):
@@ -105,7 +106,7 @@ class CMD2Model():
             return False
         # Reading Header
         header = md2_t()
-        f.readinto(header) == sizeof(header)
+        f.readinto(header)
 
         # Verify that this is a MD2 file
         if header.ident != MD2_IDENT or header.version != MD2_VERSION:
@@ -122,14 +123,36 @@ class CMD2Model():
         self.m_glcmds = [0 for i in range(self.num_glcmds)]
         self.m_lightnormals = [0 for i in range(self.num_xyz * self.num_frames)]
 
-        buffer = [0 for i in range(self.num_frames * header.framesize)]
+        frames = []
 
         # Reading file data
         f.seek(header.ofs_frames, 0)
-        for i in range(self.num_frames * header.framesize):
-            value = int.from_bytes(f.read(1), byteorder='little', signed=True)
-            # print(value)
-            buffer[i] = value
+        print(header.framesize)
+        for i in range(self.num_frames):
+            frame_s = frame_t()
+            # Read Scale
+            for j in range(3):
+                value = struct.unpack('<f', f.read(4))
+                frame_s.scale[j] = value
+            # Read Translate
+            for j in range(3):
+                value = struct.unpack('<f', f.read(4))
+                frame_s.translate[j] = value
+            # Read Name
+            value = f.read(16)
+            print(value)
+            frame_s.name = value
+            # Read verts
+            for k in range(header.num_xyz):
+                vert = vertex_t()
+                for j in range(3):
+                    value = int.from_bytes(f.read(1), byteorder='little', signed=False)
+                    vert.v[j] = value
+                value = int.from_bytes(f.read(1), byteorder='little', signed=False)
+                vert.lightnormalindex = value
+                frame_s.verts.append(vert)
+
+            frames.append(frame_s)
         
         f.seek(header.ofs_glcmds, 0)
         print(header.ofs_glcmds, header.ofs_end)
@@ -138,11 +161,14 @@ class CMD2Model():
             # print(value)
             self.m_glcmds[i] = value
 
-        # Vertex array initialization
-        # for j in range(self.num_frames):
-
-
         f.close()
+        return True
+    
+    # def LoadSkin(filename):
+    #     self.m_texid = LoadTexture(filename)
+    #     return (m_texid != self.LoadTexture("default"))
+
+    
     
 if __name__ == '__main__':
     cmd2model = CMD2Model()
