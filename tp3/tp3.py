@@ -1,5 +1,8 @@
 from ctypes import *
 
+MD2_IDENT = 844121161
+MD2_VERSION = 8
+
 NUMVERTEXNORMALS = 0
 SHADEDOT_QUANT = 0
 
@@ -100,9 +103,45 @@ class CMD2Model():
         f = open(filename, "rb")
         if not f:
             return False
-        header_s = md2_t()
-        f.readinto(header_s) == sizeof(header_s)
-        print(header_s.version)
+        # Reading Header
+        header = md2_t()
+        f.readinto(header) == sizeof(header)
+
+        # Verify that this is a MD2 file
+        if header.ident != MD2_IDENT or header.version != MD2_VERSION:
+            print("Error")
+            f.close()
+            return False
+        
+        # Initialize member variables
+        self.num_frames = header.num_frames
+        self.num_xyz = header.num_xyz
+        self.num_glcmds = header.num_glcmds
+
+        self.m_vertices = [vec3() for i in range(self.num_xyz * self.num_frames)]
+        self.m_glcmds = [0 for i in range(self.num_glcmds)]
+        self.m_lightnormals = [0 for i in range(self.num_xyz * self.num_frames)]
+
+        buffer = [0 for i in range(self.num_frames * header.framesize)]
+
+        # Reading file data
+        f.seek(header.ofs_frames, 0)
+        for i in range(self.num_frames * header.framesize):
+            value = int.from_bytes(f.read(1), byteorder='little', signed=True)
+            # print(value)
+            buffer[i] = value
+        
+        f.seek(header.ofs_glcmds, 0)
+        print(header.ofs_glcmds, header.ofs_end)
+        for i in range(self.num_glcmds):
+            value = int.from_bytes(f.read(4), byteorder='little', signed=True)
+            # print(value)
+            self.m_glcmds[i] = value
+
+        # Vertex array initialization
+        # for j in range(self.num_frames):
+
+
         f.close()
     
 if __name__ == '__main__':
