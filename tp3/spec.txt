@@ -1,0 +1,11 @@
+- Implementação em Python de um leitor de arquivos MD2; renderização em OpenGL (2 pontos extras para o uso de Shaders) e animação com shape interpolation.
+
+- Deverá ser entregue um arquivo Python e um REDME.MD explicando as decisões de implementação e o uso do programa.
+
+- O arquivo Python deverá ter a implementação de um programa capaz de:
+  - Ler de arquivos MD2 
+  - Renderizar o modelo 3D em OpenGL
+  - Renderizar as animações do modelo lido.
+
+Referência:
+http://tfc.duke.free.fr/old/models/md2.htm
