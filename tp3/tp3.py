@@ -3,6 +3,7 @@ import struct
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+import time
 
 MD2_IDENT = 844121161
 MD2_VERSION = 8
@@ -97,8 +98,6 @@ class CMD2Model():
         self.m_texid = 0
         self.m_anim = animState_t()
         self.m_scale = 1.0
-
-        # self.SetAnim(0)
 
         self.vertlist = [vec3() for i in range(MAX_MD2_VERTS)]
 
@@ -307,6 +306,8 @@ class CMD2Model():
         self.animlist.append(anim_t( 190, 197,  7 )) 
         self.animlist.append(anim_t( 198, 198,  5 )) 
 
+        self.SetAnim(0)
+
     def LoadModel(self, filename):
         f = open(filename, "rb")
         if not f:
@@ -379,11 +380,13 @@ class CMD2Model():
     #     self.m_texid = LoadTexture(filename)
     #     return (m_texid != self.LoadTexture("default"))
     
-    def Interpolate(self, vertlist):
+    def Interpolate(self):
         for i in range(self.num_xyz):
-            vertlist[i][0] = self.m_vertices[ i + (self.num_xyz * self.m_anim.curr_frame) ][0] * self.m_scale;
-            vertlist[i][1] = self.m_vertices[ i + (self.num_xyz * self.m_anim.curr_frame) ][1] * self.m_scale;
-            vertlist[i][2] = self.m_vertices[ i + (self.num_xyz * self.m_anim.curr_frame) ][2] * self.m_scale;
+            curr_v = self.m_vertices[self.num_xyz * self.m_anim.curr_frame + i]
+            next_v = self.m_vertices[self.num_xyz * self.m_anim.next_frame + i]
+            self.vertlist[i][0] = (curr_v[0] + self.m_anim.interpol * (next_v[0] - curr_v[0])) * self.m_scale
+            self.vertlist[i][1] = (curr_v[1] + self.m_anim.interpol * (next_v[1] - curr_v[1])) * self.m_scale
+            self.vertlist[i][2] = (curr_v[2] + self.m_anim.interpol * (next_v[2] - curr_v[2])) * self.m_scale
 
     def ProcessLighting(self):
         global lcolor
@@ -405,7 +408,7 @@ class CMD2Model():
 
         self.ProcessLighting()
 
-        self.Interpolate( self.vertlist )
+        self.Interpolate()
 
         # glBindTexture( GL_TEXTURE_2D, m_texid )
 
@@ -457,6 +460,9 @@ class CMD2Model():
         self.RenderFrame()
         glPopMatrix()
 
+    def ScaleModel(self, s):
+        self.m_scale = s
+
 
 
 
@@ -471,6 +477,9 @@ def init():
 
     ogro_model = CMD2Model()
     ogro_model.LoadModel("Ogros.md2")
+    ogro_model.ScaleModel(0.01)
+
+    print("Loaded model")
 
     glDisable( GL_LIGHTING );
     glEnable( GL_LIGHT0 )
@@ -500,7 +509,7 @@ def display():
     if angle > 360.0:
         angle -= 360.0
 
-    glTranslatef( 0.0, 0.0, -25.0 )
+    # glTranslatef( 0.0, 0.0, -25.0 )
     glRotatef( angle, 0.0, 1.0, 0.0 )
 
     ogro_model.DrawModel(0.0)
@@ -522,7 +531,7 @@ angle = 0.0
 g_angle = 0.0
 
 glutInit(sys.argv)
-glutInitDisplayMode( GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH )
+glutInitDisplayMode( GLUT_SINGLE | GLUT_RGBA | GLUT_DEPTH )
 glutInitWindowSize(640, 480)
 glutInitWindowPosition(100, 100)
 glutCreateWindow("MD2")
