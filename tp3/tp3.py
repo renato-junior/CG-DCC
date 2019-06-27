@@ -463,8 +463,25 @@ class CMD2Model():
     def ScaleModel(self, s):
         self.m_scale = s
 
+    def Animate(self, time):
+        self.m_anim.curr_time = time
 
+        if self.m_anim.curr_time - self.m_anim.old_time > (1.0/self.m_anim.fps):
+            self.m_anim.curr_frame = self.m_anim.next_frame
+            self.m_anim.next_frame += 1
 
+            if self.m_anim.next_frame > self.m_anim.endframe:
+                self.m_anim.next_frame = self.m_anim.startframe
+
+            self.m_anim.old_time = self.m_anim.curr_time
+        
+        if self.m_anim.curr_frame > (self.num_frames - 1):
+            self.m_anim.curr_frame = 0
+        
+        if self.m_anim.next_frame > (self.num_frames - 1):
+            self.m_anim.next_frame = 0
+        
+        self.m_anim.interpol = self.m_anim.fps * (self.m_anim.curr_time - self.m_anim.old_time)
 
 def init():
     global ogro_model
@@ -512,7 +529,7 @@ def display():
     # glTranslatef( 0.0, 0.0, -25.0 )
     glRotatef( angle, 0.0, 1.0, 0.0 )
 
-    ogro_model.DrawModel(0.0)
+    ogro_model.DrawModel(time.time())
 
 def timer(value):
     # Função usada para chamar display() a cada 33ms
