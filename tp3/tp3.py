@@ -8,6 +8,7 @@ import time
 import glfw
 import glm
 import numpy as np
+import argparse
 
 MD2_IDENT = 844121161
 MD2_VERSION = 8
@@ -475,7 +476,7 @@ def display(model):
     model.DrawModel(time.time())
 
 def define_ambient_parameters(shader):
-    aColor = [0.0, 0.0, 0.5]
+    aColor = [0.5, 0.5, 0.5]
     lPosition = [300, 300, 300]
     lColor = [0.5, 0.5, 0.5]
     lSpecular = [1.0, 1.0, 1.0]
@@ -529,14 +530,20 @@ animlist.append(anim_t( 190, 197,  7 ))
 animlist.append(anim_t( 198, 198,  5 )) 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Ray Tracer.')
+    parser.add_argument('filename', help="Name of the MD2 file.")
+    parser.add_argument('--animation', default=0, type=int, help="Choose the animation to be played.", choices=range(21))
+    args = parser.parse_args()
+
     # Load Model
-    model = load_model("Ogros.md2")
+    model = load_model(args.filename)
+    model.SetAnim(args.animation)
 
     # initialize glfw
     if not glfw.init():
         exit()
 
-    window = glfw.create_window(800, 600, "Phong Shading", None, None)
+    window = glfw.create_window(800, 600, "MD2 Loader", None, None)
 
     if not window:
         glfw.terminate()
