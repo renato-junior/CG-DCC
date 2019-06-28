@@ -15,6 +15,7 @@ MD2_VERSION = 8
 
 NUMVERTEXNORMALS = 162
 SHADEDOT_QUANT = 16
+NUM_ANIMATIONS = 21
 
 phong_vertex_shader = """
     #version 130
@@ -529,6 +530,20 @@ animlist.append(anim_t( 184, 189,  7 ))
 animlist.append(anim_t( 190, 197,  7 )) 
 animlist.append(anim_t( 198, 198,  5 )) 
 
+current_anim = 0
+new_anim = False
+
+def key_event(window,key,scancode,action,mods):
+    global current_anim, new_anim
+
+    if action == glfw.PRESS and key == glfw.KEY_RIGHT:
+        current_anim = (current_anim+1)%NUM_ANIMATIONS
+        new_anim = True
+    if action == glfw.PRESS and key == glfw.KEY_LEFT:
+        current_anim = (current_anim-1)%NUM_ANIMATIONS
+        new_anim = True
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ray Tracer.')
     parser.add_argument('filename', help="Name of the MD2 file.")
@@ -537,7 +552,8 @@ if __name__ == "__main__":
 
     # Load Model
     model = load_model(args.filename)
-    model.SetAnim(args.animation)
+    current_anim = args.animation
+    model.SetAnim(current_anim)
 
     # initialize glfw
     if not glfw.init():
@@ -550,6 +566,7 @@ if __name__ == "__main__":
         exit()
 
     glfw.make_context_current(window)
+    glfw.set_key_callback(window,key_event)
 
     shader = OpenGL.GL.shaders.compileProgram(OpenGL.GL.shaders.compileShader(phong_vertex_shader, GL_VERTEX_SHADER),
                                                 OpenGL.GL.shaders.compileShader(phong_fragment_shader, GL_FRAGMENT_SHADER))
@@ -580,6 +597,10 @@ if __name__ == "__main__":
 
     while not glfw.window_should_close(window):
         glfw.poll_events()
+
+        if new_anim:
+            model.SetAnim(current_anim)
+            new_anim = False
 
         display(model)
 
