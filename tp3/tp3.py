@@ -11,7 +11,6 @@ import numpy as np
 
 MD2_IDENT = 844121161
 MD2_VERSION = 8
-MAX_MD2_VERTS = 10000000
 
 NUMVERTEXNORMALS = 162
 SHADEDOT_QUANT = 16
@@ -316,7 +315,7 @@ class CMD2Model():
         self.m_anim = animState_t()
         self.m_scale = 1.0
 
-        self.vertlist = [vec3() for i in range(MAX_MD2_VERTS)]
+        self.vertlist = []
 
         self.SetAnim(0)
 
@@ -392,9 +391,15 @@ class CMD2Model():
         for i in range(self.num_xyz):
             curr_v = self.m_vertices[self.num_xyz * self.m_anim.curr_frame + i]
             next_v = self.m_vertices[self.num_xyz * self.m_anim.next_frame + i]
-            self.vertlist[i][0] = (curr_v[0] + self.m_anim.interpol * (next_v[0] - curr_v[0])) * self.m_scale
-            self.vertlist[i][1] = (curr_v[1] + self.m_anim.interpol * (next_v[1] - curr_v[1])) * self.m_scale
-            self.vertlist[i][2] = (curr_v[2] + self.m_anim.interpol * (next_v[2] - curr_v[2])) * self.m_scale
+            try: 
+                self.vertlist[i][0] = (curr_v[0] + self.m_anim.interpol * (next_v[0] - curr_v[0])) * self.m_scale
+                self.vertlist[i][1] = (curr_v[1] + self.m_anim.interpol * (next_v[1] - curr_v[1])) * self.m_scale
+                self.vertlist[i][2] = (curr_v[2] + self.m_anim.interpol * (next_v[2] - curr_v[2])) * self.m_scale
+            except IndexError:
+                self.vertlist.append(vec3())
+                self.vertlist[i][0] = (curr_v[0] + self.m_anim.interpol * (next_v[0] - curr_v[0])) * self.m_scale
+                self.vertlist[i][1] = (curr_v[1] + self.m_anim.interpol * (next_v[1] - curr_v[1])) * self.m_scale
+                self.vertlist[i][2] = (curr_v[2] + self.m_anim.interpol * (next_v[2] - curr_v[2])) * self.m_scale
     
     def RenderFrame(self):
         self.Interpolate()
