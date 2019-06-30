@@ -8,7 +8,9 @@ O programa foi implementado com base no tutorial disponibilizado (http://tfc.duk
 
 Algumas mudanças foram necessárias devido ao fato do tutorial estar em C++ e este programa ser desenvolvido em Python.
 
-Para ler o arquivo binário, foram usados pacotes struct e ctype. Foi usada a implementação do Phong Shader do Trabalho Prático 1.
+Para ler o arquivo binário, foram usados pacotes struct e ctype.
+
+Foi usada a implementação do **Phong Shader** do Trabalho Prático 1.
 
 A classe CMD2Model contém todas as informações obtidas do arquivo do modelo md2, como os vértices e os comandos OpenGL. Ela foi implementada tendo como base o tutorial já citado.
 
@@ -21,7 +23,7 @@ Para executar o programa, basta rodar o seguinte comando em um Terminal:
 
 Onde FILENAME é o nome do arquivo md2 com o modelo a ser exibido.
 
-O parâmetro opicional animation pode ser usado para especificar qual animação será exibida:
+O parâmetro opcional animation pode ser usado para especificar qual animação será exibida:
 
     python tp3.py FILENAME --animation 10
 
