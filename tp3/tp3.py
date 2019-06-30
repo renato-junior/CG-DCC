@@ -2,7 +2,6 @@ from ctypes import *
 import struct
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from OpenGL.GLUT import *
 import OpenGL.GL.shaders
 import time
 import glfw
