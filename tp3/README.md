@@ -1,6 +1,5 @@
 # Trabalho Prático - Shape Interpolation
 Renato Sérgio Lopes Júnior
-2016006875
 ===
 
 ## Implementação
